@@ -3,7 +3,13 @@ import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
 import { exec } from "child_process";
 import { platform } from "os";
-import path from "path";
+import {
+  DEFAULT_MAX_OUTPUT_CHARS,
+  WORKSPACE_ROOT,
+  isCommandBlocked,
+  resolveSafeCwd,
+  truncateOutput,
+} from "./policy";
 
 dotenv.config();
 
@@ -14,8 +20,7 @@ app.use(express.json({ limit: "1mb" }));
 const PORT = Number(process.env.PORT ?? 3333);
 const DEFAULT_TIMEOUT_MS = Number(process.env.TERMINAL_DEFAULT_TIMEOUT_MS ?? 60000);
 const MAX_TIMEOUT_MS = Number(process.env.TERMINAL_MAX_TIMEOUT_MS ?? 120000);
-const MAX_OUTPUT_CHARS = Number(process.env.TERMINAL_MAX_OUTPUT_CHARS ?? 50000);
-const WORKSPACE_ROOT = path.resolve(process.env.TERMINAL_WORKSPACE_ROOT ?? process.cwd());
+const MAX_OUTPUT_CHARS = DEFAULT_MAX_OUTPUT_CHARS;
 
 // Auto-detect operating system
 const OPERATING_SYSTEM = (() => {
@@ -59,47 +64,6 @@ type ExecuteRequest = {
   timeoutMs?: number;
   cwd?: string;
 };
-
-const DENY_PATTERNS: RegExp[] = [
-  /(^|\s)rm\s+-rf(\s|$)/i,
-  /(^|\s)del\s+\/s\s+\/q(\s|$)/i,
-  /(^|\s)format(\s|$)/i,
-  /(^|\s)mkfs(\s|$)/i,
-  /(^|\s)dd\s+if=/i,
-  /(^|\s)powershell\b.*-encodedcommand\b/i,
-  /(^|\s)(curl|wget|Invoke-WebRequest)\b.*\|/i
-];
-
-function isCommandBlocked(command: string): boolean {
-  return DENY_PATTERNS.some((pattern) => pattern.test(command));
-}
-
-function resolveSafeCwd(inputCwd?: string): { ok: true; cwd: string } | { ok: false; message: string } {
-  if (!inputCwd) {
-    return { ok: true, cwd: WORKSPACE_ROOT };
-  }
-
-  const resolved = path.resolve(WORKSPACE_ROOT, inputCwd);
-  const relative = path.relative(WORKSPACE_ROOT, resolved);
-  const outsideRoot = relative.startsWith("..") || path.isAbsolute(relative);
-
-  if (outsideRoot) {
-    return {
-      ok: false,
-      message: `cwd must stay within workspace root: ${WORKSPACE_ROOT}`
-    };
-  }
-
-  return { ok: true, cwd: resolved };
-}
-
-function truncateOutput(text: string, maxChars: number): string {
-  if (text.length <= maxChars) {
-    return text;
-  }
-
-  return `${text.slice(0, maxChars)}\n--- OUTPUT TRUNCATED (${text.length - maxChars} chars omitted) ---`;
-}
 
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ ok: true, service: "lm-studio-terminal-tool" });
@@ -175,7 +139,7 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
     return;
   }
 
-  const safeCwd = resolveSafeCwd(req.body.cwd);
+  const safeCwd = resolveSafeCwd(WORKSPACE_ROOT, req.body.cwd);
   if (!safeCwd.ok) {
     res.status(403).json({
       success: false,
