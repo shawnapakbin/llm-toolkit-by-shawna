@@ -1,0 +1,57 @@
+{
+  "name": "llm-toolkit-by-shawna",
+  "version": "2.0.0-alpha.1",
+  "description": "Enterprise-grade LLM software engineer agent with multi-tool orchestration",
+  "private": true,
+  "main": "dist/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "format": "biome format --write .",
+    "format:check": "biome format --check .",
+    "lint": "biome lint --apply .",
+    "lint:check": "biome lint .",
+    "check": "biome check --apply .",
+    "check:ci": "biome check .",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "type-check": "tsc --noEmit",
+    "build": "npm run build:tools && npm run build:memory",
+    "build:tools": "npm run -w Terminal build && npm run -w WebBrowser build && npm run -w Calculator build && npm run -w Clock build && npm run -w Browserless build",
+    "build:memory": "npm run -w Memory build",
+    "dev": "npm run dev -w Terminal",
+    "clean": "rm -rf dist coverage .biome-cache && npm run clean:tools",
+    "clean:tools": "npm run -w Terminal clean && npm run -w WebBrowser clean && npm run -w Calculator clean && npm run -w Clock clean && npm run -w Browserless clean"
+  },
+  "keywords": [
+    "llm",
+    "agent",
+    "software-engineering",
+    "mcp",
+    "model-context-protocol",
+    "tools",
+    "orchestration"
+  ],
+  "author": "Shawna Pakbin",
+  "license": "MIT",
+  "dependencies": {
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^22.13.1",
+    "@types/uuid": "^9.0.7",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.8.2"
+  },
+  "workspaces": [
+    "Terminal",
+    "WebBrowser",
+    "Calculator",
+    "Clock",
+    "Browserless",
+    "Memory"
+  ]
+}

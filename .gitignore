@@ -7,3 +7,51 @@ WebBrowser/.env
 Calculator/node_modules/
 Calculator/dist/
 Calculator/.env
+
+
+# Build outputs
+bin/
+out/
+build/
+
+# Coverage
+coverage/
+*.lcov
+
+# Biome cache
+.biome-cache/
+biome-results.json
+
+# Memory database
+memory.db
+*.db
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+*/node_modules/
+*/dist/
+*/.env
+*/coverage/
+*/jest.config.*
+
+# Yarn/npm lock files (use npm-shrinkwrap or pnpm-lock)
+yarn.lock
+
+# Test artifacts
+*.test.js
+*.spec.js
+.jest-cache/
+
+# Temporary
+.tmp/
+*.tmp

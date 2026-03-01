@@ -1,0 +1,71 @@
+name: "Quality Gates"
+
+on: [push, pull_request]
+
+jobs:
+  biome:
+    name: "Biome: Format & Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: "Install dependencies"
+        run: npm ci
+      - name: "Biome check (format + lint + organize imports)"
+        run: npm run check:ci
+
+  type-check:
+    name: "TypeScript: Type Safety"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: "Install dependencies"
+        run: npm ci
+      - name: "Type check"
+        run: npm run type-check
+
+  test:
+    name: "Jest: Tests & Coverage"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: "Install dependencies"
+        run: npm ci
+      - name: "Run tests with coverage"
+        run: npm run test:ci
+      - name: "Upload coverage to Codecov (optional)"
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  build:
+    name: "Build: Compile TypeScript"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: "Install dependencies"
+        run: npm ci
+      - name: "Build all tools"
+        run: npm run build
+      - name: "Verify dist/ directories"
+        run: |
+          for dir in Terminal WebBrowser Calculator Clock Browserless Memory; do
+            if [ ! -f "$dir/dist/index.js" ] && [ ! -f "$dir/dist/mcp-server.js" ]; then
+              echo "ERROR: $dir did not build successfully"
+              exit 1
+            fi
+          done
