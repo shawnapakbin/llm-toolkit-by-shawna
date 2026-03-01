@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
 import { exec } from "child_process";
 import { platform } from "os";
+import path from "path";
 
 dotenv.config();
 
@@ -13,6 +14,8 @@ app.use(express.json({ limit: "1mb" }));
 const PORT = Number(process.env.PORT ?? 3333);
 const DEFAULT_TIMEOUT_MS = Number(process.env.TERMINAL_DEFAULT_TIMEOUT_MS ?? 60000);
 const MAX_TIMEOUT_MS = Number(process.env.TERMINAL_MAX_TIMEOUT_MS ?? 120000);
+const MAX_OUTPUT_CHARS = Number(process.env.TERMINAL_MAX_OUTPUT_CHARS ?? 50000);
+const WORKSPACE_ROOT = path.resolve(process.env.TERMINAL_WORKSPACE_ROOT ?? process.cwd());
 
 // Auto-detect operating system
 const OPERATING_SYSTEM = (() => {
@@ -56,6 +59,47 @@ type ExecuteRequest = {
   timeoutMs?: number;
   cwd?: string;
 };
+
+const DENY_PATTERNS: RegExp[] = [
+  /(^|\s)rm\s+-rf(\s|$)/i,
+  /(^|\s)del\s+\/s\s+\/q(\s|$)/i,
+  /(^|\s)format(\s|$)/i,
+  /(^|\s)mkfs(\s|$)/i,
+  /(^|\s)dd\s+if=/i,
+  /(^|\s)powershell\b.*-encodedcommand\b/i,
+  /(^|\s)(curl|wget|Invoke-WebRequest)\b.*\|/i
+];
+
+function isCommandBlocked(command: string): boolean {
+  return DENY_PATTERNS.some((pattern) => pattern.test(command));
+}
+
+function resolveSafeCwd(inputCwd?: string): { ok: true; cwd: string } | { ok: false; message: string } {
+  if (!inputCwd) {
+    return { ok: true, cwd: WORKSPACE_ROOT };
+  }
+
+  const resolved = path.resolve(WORKSPACE_ROOT, inputCwd);
+  const relative = path.relative(WORKSPACE_ROOT, resolved);
+  const outsideRoot = relative.startsWith("..") || path.isAbsolute(relative);
+
+  if (outsideRoot) {
+    return {
+      ok: false,
+      message: `cwd must stay within workspace root: ${WORKSPACE_ROOT}`
+    };
+  }
+
+  return { ok: true, cwd: resolved };
+}
+
+function truncateOutput(text: string, maxChars: number): string {
+  if (text.length <= maxChars) {
+    return text;
+  }
+
+  return `${text.slice(0, maxChars)}\n--- OUTPUT TRUNCATED (${text.length - maxChars} chars omitted) ---`;
+}
 
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ ok: true, service: "lm-studio-terminal-tool" });
@@ -117,7 +161,28 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
   const command = req.body.command?.trim();
 
   if (!command) {
-    res.status(400).json({ error: "'command' is required." });
+    res.status(400).json({ success: false, errorCode: "INVALID_INPUT", errorMessage: "'command' is required." });
+    return;
+  }
+
+  if (isCommandBlocked(command)) {
+    res.status(403).json({
+      success: false,
+      errorCode: "POLICY_BLOCKED",
+      errorMessage: "Command blocked by terminal safety policy.",
+      timeoutMs: DEFAULT_TIMEOUT_MS
+    });
+    return;
+  }
+
+  const safeCwd = resolveSafeCwd(req.body.cwd);
+  if (!safeCwd.ok) {
+    res.status(403).json({
+      success: false,
+      errorCode: "POLICY_BLOCKED",
+      errorMessage: safeCwd.message,
+      timeoutMs: DEFAULT_TIMEOUT_MS
+    });
     return;
   }
 
@@ -130,17 +195,26 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
     command,
     {
       timeout: timeoutMs,
-      cwd: req.body.cwd,
+      cwd: safeCwd.cwd,
       windowsHide: true,
       maxBuffer: 10 * 1024 * 1024
     },
     (error, stdout, stderr) => {
+      const truncatedStdout = truncateOutput(stdout, MAX_OUTPUT_CHARS);
+      const truncatedStderr = truncateOutput(stderr, MAX_OUTPUT_CHARS);
+
       const response = {
         success: !error,
         code: error && "code" in error ? error.code : 0,
         signal: error && "signal" in error ? error.signal : null,
-        stdout,
-        stderr,
+        stdout: truncatedStdout,
+        stderr: truncatedStderr,
+        errorCode: error ? "EXECUTION_FAILED" : undefined,
+        errorMessage: error ? "Command execution failed." : undefined,
+        policy: {
+          workspaceRoot: WORKSPACE_ROOT,
+          maxOutputChars: MAX_OUTPUT_CHARS
+        },
         timeoutMs
       };
 

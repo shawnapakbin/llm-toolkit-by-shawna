@@ -27,13 +27,13 @@ app.get("/health", (_req: Request, res: Response) => {
 app.get("/tool-schema", (_req: Request, res: Response) => {
   res.json({
     name: "browse_web",
-    description: "Fetches a web page and returns title and extracted text content.",
+    description: "Fetches a web page and returns title and extracted text content with SSRF/content-type protections.",
     parameters: {
       type: "object",
       properties: {
         url: {
           type: "string",
-          description: "The full URL to fetch, including http:// or https://."
+          description: "The full URL to fetch, including http:// or https://. Private and local network targets are blocked."
         },
         timeoutMs: {
           type: "number",
@@ -53,7 +53,11 @@ app.post("/tools/browse_web", async (req: Request<unknown, unknown, BrowseReques
   const url = req.body.url?.trim();
 
   if (!url || !/^https?:\/\//i.test(url)) {
-    res.status(400).json({ error: "'url' is required and must start with http:// or https://" });
+    res.status(400).json({
+      success: false,
+      errorCode: "INVALID_INPUT",
+      error: "'url' is required and must start with http:// or https://"
+    });
     return;
   }
 

@@ -2,15 +2,7 @@ import Database from "better-sqlite3";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 import { initSchema } from "./schema";
-import type {
-  TaskRun,
-  ToolCall,
-  SolutionPattern,
-  Rule,
-  SessionContext,
-  AgentDecision,
-  FailedAttempt,
-} from "./types";
+import type { SolutionPattern, Rule } from "./types";
 
 export class MemoryStore {
   private db: Database.Database;

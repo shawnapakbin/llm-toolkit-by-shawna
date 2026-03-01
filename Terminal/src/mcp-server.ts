@@ -1,6 +1,7 @@
 import { exec } from "child_process";
 import dotenv from "dotenv";
 import { platform } from "os";
+import path from "path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -10,6 +11,8 @@ dotenv.config();
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.TERMINAL_DEFAULT_TIMEOUT_MS ?? 60000);
 const MAX_TIMEOUT_MS = Number(process.env.TERMINAL_MAX_TIMEOUT_MS ?? 120000);
+const MAX_OUTPUT_CHARS = Number(process.env.TERMINAL_MAX_OUTPUT_CHARS ?? 50000);
+const WORKSPACE_ROOT = path.resolve(process.env.TERMINAL_WORKSPACE_ROOT ?? process.cwd());
 
 // Auto-detect operating system
 const OPERATING_SYSTEM = (() => {
@@ -25,6 +28,47 @@ const server = new McpServer({
   version: "1.0.0"
 });
 
+const DENY_PATTERNS: RegExp[] = [
+  /(^|\s)rm\s+-rf(\s|$)/i,
+  /(^|\s)del\s+\/s\s+\/q(\s|$)/i,
+  /(^|\s)format(\s|$)/i,
+  /(^|\s)mkfs(\s|$)/i,
+  /(^|\s)dd\s+if=/i,
+  /(^|\s)powershell\b.*-encodedcommand\b/i,
+  /(^|\s)(curl|wget|Invoke-WebRequest)\b.*\|/i
+];
+
+function isCommandBlocked(command: string): boolean {
+  return DENY_PATTERNS.some((pattern) => pattern.test(command));
+}
+
+function resolveSafeCwd(inputCwd?: string): { ok: true; cwd: string } | { ok: false; message: string } {
+  if (!inputCwd) {
+    return { ok: true, cwd: WORKSPACE_ROOT };
+  }
+
+  const resolved = path.resolve(WORKSPACE_ROOT, inputCwd);
+  const relative = path.relative(WORKSPACE_ROOT, resolved);
+  const outsideRoot = relative.startsWith("..") || path.isAbsolute(relative);
+
+  if (outsideRoot) {
+    return {
+      ok: false,
+      message: `cwd must stay within workspace root: ${WORKSPACE_ROOT}`
+    };
+  }
+
+  return { ok: true, cwd: resolved };
+}
+
+function truncateOutput(text: string, maxChars: number): string {
+  if (text.length <= maxChars) {
+    return text;
+  }
+
+  return `${text.slice(0, maxChars)}\n--- OUTPUT TRUNCATED (${text.length - maxChars} chars omitted) ---`;
+}
+
 server.registerTool(
   "run_terminal_command",
   {
@@ -36,6 +80,35 @@ server.registerTool(
     } as any
   },
   async ({ command, timeoutMs, cwd }: any): Promise<CallToolResult> => {
+    if (isCommandBlocked(command)) {
+      const blockedResult = {
+        success: false,
+        errorCode: "POLICY_BLOCKED",
+        errorMessage: "Command blocked by terminal safety policy.",
+        timeoutMs: DEFAULT_TIMEOUT_MS
+      };
+      return {
+        isError: true,
+        content: [{ type: "text", text: JSON.stringify(blockedResult, null, 2) }],
+        structuredContent: blockedResult
+      };
+    }
+
+    const safeCwd = resolveSafeCwd(cwd);
+    if (!safeCwd.ok) {
+      const blockedResult = {
+        success: false,
+        errorCode: "POLICY_BLOCKED",
+        errorMessage: safeCwd.message,
+        timeoutMs: DEFAULT_TIMEOUT_MS
+      };
+      return {
+        isError: true,
+        content: [{ type: "text", text: JSON.stringify(blockedResult, null, 2) }],
+        structuredContent: blockedResult
+      };
+    }
+
     const effectiveTimeoutMs = Number.isFinite(timeoutMs)
       ? Math.min(Math.max(Number(timeoutMs), 1), MAX_TIMEOUT_MS)
       : DEFAULT_TIMEOUT_MS;
@@ -45,17 +118,25 @@ server.registerTool(
         command,
         {
           timeout: effectiveTimeoutMs,
-          cwd,
+          cwd: safeCwd.cwd,
           windowsHide: true,
           maxBuffer: 10 * 1024 * 1024
         },
         (error, stdout, stderr) => {
+          const truncatedStdout = truncateOutput(stdout, MAX_OUTPUT_CHARS);
+          const truncatedStderr = truncateOutput(stderr, MAX_OUTPUT_CHARS);
           const result = {
             success: !error,
             code: error && "code" in error ? error.code : 0,
             signal: error && "signal" in error ? error.signal : null,
-            stdout,
-            stderr,
+            stdout: truncatedStdout,
+            stderr: truncatedStderr,
+            errorCode: error ? "EXECUTION_FAILED" : undefined,
+            errorMessage: error ? "Command execution failed." : undefined,
+            policy: {
+              workspaceRoot: WORKSPACE_ROOT,
+              maxOutputChars: MAX_OUTPUT_CHARS
+            },
             timeoutMs: effectiveTimeoutMs
           };
 
