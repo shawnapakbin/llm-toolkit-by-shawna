@@ -1,0 +1,10 @@
+{
+    "chat.mcp.serverSampling": {
+        "llm-toolkit/.vscode/mcp.json: browserless-docs": {
+            "allowedModels": [
+                "copilot/gpt-5.3-codex",
+                "copilot/auto"
+            ]
+        }
+    }
+}

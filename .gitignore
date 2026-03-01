@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+WebBrowser/node_modules/
+WebBrowser/dist/
+WebBrowser/.env
+Calculator/node_modules/
+Calculator/dist/
+Calculator/.env
