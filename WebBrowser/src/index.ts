@@ -77,9 +77,19 @@ app.post("/tools/browse_web", async (req: Request<unknown, unknown, BrowseReques
     maxContentChars
   });
 
-  res.status(result.success ? 200 : 400).json(result);
+  const status = result.success
+    ? 200
+    : result.errorCode === "POLICY_BLOCKED"
+      ? 403
+      : 400;
+
+  res.status(status).json(result);
 });
 
-app.listen(PORT, () => {
-  console.log(`LM Studio Web Browser Tool listening on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`LM Studio Web Browser Tool listening on http://localhost:${PORT}`);
+  });
+}
+
+export { app };

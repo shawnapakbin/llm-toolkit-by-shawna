@@ -187,6 +187,10 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
   );
 });
 
-app.listen(PORT, () => {
-  console.log(`LLM Toolkit - Terminal listening on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`LLM Toolkit - Terminal listening on http://localhost:${PORT}`);
+  });
+}
+
+export { app };
