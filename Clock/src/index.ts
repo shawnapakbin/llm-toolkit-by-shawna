@@ -3,6 +3,14 @@ import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
 import { getClockSnapshot } from "./clock";
 import { isTimeZoneTooLong, isLocaleTooLong } from "./policy";
+import {
+  ToolResponse,
+  ErrorCode,
+  OperationTimer,
+  generateTraceId,
+  createSuccessResponse,
+  createErrorResponse
+} from "@shared/types";
 
 dotenv.config();
 
@@ -43,17 +51,32 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
 });
 
 app.post("/tools/get_current_datetime", (req: Request<unknown, unknown, ClockRequestBody>, res: Response) => {
+  const timer = new OperationTimer();
+  const traceId = generateTraceId();
+  
   const timeZone = req.body.timeZone?.trim();
   const locale = req.body.locale?.trim();
 
   // Validate input lengths to prevent DoS
   if (timeZone && isTimeZoneTooLong(timeZone)) {
-    res.status(400).json({ success: false, error: "Timezone string is too long." });
+    const errorResponse = createErrorResponse(
+      ErrorCode.INVALID_INPUT,
+      "Timezone string is too long.",
+      timer.elapsed(),
+      traceId
+    );
+    res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
     return;
   }
 
   if (locale && isLocaleTooLong(locale)) {
-    res.status(400).json({ success: false, error: "Locale string is too long." });
+    const errorResponse = createErrorResponse(
+      ErrorCode.INVALID_INPUT,
+      "Locale string is too long.",
+      timer.elapsed(),
+      traceId
+    );
+    res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
     return;
   }
 
@@ -61,8 +84,26 @@ app.post("/tools/get_current_datetime", (req: Request<unknown, unknown, ClockReq
     timeZone,
     locale
   });
+  
+  const timingMs = timer.elapsed();
+  
+  const response: ToolResponse = result.success
+    ? createSuccessResponse(result, timingMs, traceId)
+    : {
+        success: false,
+        errorCode: ErrorCode.EXECUTION_FAILED,
+        errorMessage: result.error || "Failed to get clock snapshot",
+        data: result,
+        timingMs,
+        traceId
+      };
 
-  res.status(result.success ? 200 : 400).json(result);
+  // Backward compatibility: expose data fields at root + keep "error" field
+  res.status(result.success ? 200 : 400).json({
+    ...response,
+    ...response.data,
+    error: response.errorMessage
+  });
 });
 
 // Export app for testing

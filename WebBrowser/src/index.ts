@@ -2,6 +2,14 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
 import { browseWeb } from "./browser";
+import {
+  ToolResponse,
+  ErrorCode,
+  OperationTimer,
+  generateTraceId,
+  createSuccessResponse,
+  createErrorResponse
+} from "@shared/types";
 
 dotenv.config();
 
@@ -50,14 +58,19 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
 });
 
 app.post("/tools/browse_web", async (req: Request<unknown, unknown, BrowseRequest>, res: Response) => {
+  const timer = new OperationTimer();
+  const traceId = generateTraceId();
+  
   const url = req.body.url?.trim();
 
   if (!url || !/^https?:\/\//i.test(url)) {
-    res.status(400).json({
-      success: false,
-      errorCode: "INVALID_INPUT",
-      error: "'url' is required and must start with http:// or https://"
-    });
+    const errorResponse = createErrorResponse(
+      ErrorCode.INVALID_INPUT,
+      "'url' is required and must start with http:// or https://",
+      timer.elapsed(),
+      traceId
+    );
+    res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
     return;
   }
 
@@ -77,13 +90,31 @@ app.post("/tools/browse_web", async (req: Request<unknown, unknown, BrowseReques
     maxContentChars
   });
 
+  const timingMs = timer.elapsed();
+  
+  const response: ToolResponse = result.success
+    ? createSuccessResponse(result, timingMs, traceId)
+    : {
+        success: false,
+        errorCode: result.errorCode as ErrorCode || ErrorCode.EXECUTION_FAILED,
+        errorMessage: result.error || "Unknown error",
+        data: result,
+        timingMs,
+        traceId
+      };
+
   const status = result.success
     ? 200
     : result.errorCode === "POLICY_BLOCKED"
       ? 403
       : 400;
 
-  res.status(status).json(result);
+  // Backward compatibility: expose data fields at root + keep "error" field
+  res.status(status).json({ 
+    ...response, 
+    ...response.data,
+    error: response.errorMessage 
+  });
 });
 
 if (require.main === module) {

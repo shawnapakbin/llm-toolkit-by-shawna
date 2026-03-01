@@ -10,6 +10,14 @@ import {
   resolveSafeCwd,
   truncateOutput,
 } from "./policy";
+import {
+  type ToolResponse,
+  ErrorCode,
+  generateTraceId,
+  OperationTimer,
+  createSuccessResponse,
+  createErrorResponse,
+} from "@shared/types";
 
 dotenv.config();
 
@@ -122,31 +130,41 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
 });
 
 app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteRequest>, res: Response) => {
+  const timer = new OperationTimer();
+  const traceId = generateTraceId();
   const command = req.body.command?.trim();
 
   if (!command) {
-    res.status(400).json({ success: false, errorCode: "INVALID_INPUT", errorMessage: "'command' is required." });
+    const response = createErrorResponse(
+      ErrorCode.INVALID_INPUT,
+      "'command' is required.",
+      timer.elapsed(),
+      traceId
+    );
+    res.status(400).json(response);
     return;
   }
 
   if (isCommandBlocked(command)) {
-    res.status(403).json({
-      success: false,
-      errorCode: "POLICY_BLOCKED",
-      errorMessage: "Command blocked by terminal safety policy.",
-      timeoutMs: DEFAULT_TIMEOUT_MS
-    });
+    const response = createErrorResponse(
+      ErrorCode.POLICY_BLOCKED,
+      "Command blocked by terminal safety policy.",
+      timer.elapsed(),
+      traceId
+    );
+    res.status(403).json(response);
     return;
   }
 
   const safeCwd = resolveSafeCwd(WORKSPACE_ROOT, req.body.cwd);
   if (!safeCwd.ok) {
-    res.status(403).json({
-      success: false,
-      errorCode: "POLICY_BLOCKED",
-      errorMessage: safeCwd.message,
-      timeoutMs: DEFAULT_TIMEOUT_MS
-    });
+    const response = createErrorResponse(
+      ErrorCode.POLICY_BLOCKED,
+      safeCwd.message,
+      timer.elapsed(),
+      traceId
+    );
+    res.status(403).json(response);
     return;
   }
 
@@ -167,14 +185,11 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
       const truncatedStdout = truncateOutput(stdout, MAX_OUTPUT_CHARS);
       const truncatedStderr = truncateOutput(stderr, MAX_OUTPUT_CHARS);
 
-      const response = {
-        success: !error,
+      const data = {
         code: error && "code" in error ? error.code : 0,
         signal: error && "signal" in error ? error.signal : null,
         stdout: truncatedStdout,
         stderr: truncatedStderr,
-        errorCode: error ? "EXECUTION_FAILED" : undefined,
-        errorMessage: error ? "Command execution failed." : undefined,
         policy: {
           workspaceRoot: WORKSPACE_ROOT,
           maxOutputChars: MAX_OUTPUT_CHARS
@@ -182,7 +197,30 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
         timeoutMs
       };
 
-      res.status(error ? 400 : 200).json(response);
+      const response: ToolResponse = error
+        ? createErrorResponse(
+            ErrorCode.EXECUTION_FAILED,
+            "Command execution failed.",
+            timer.elapsed(),
+            traceId
+          )
+        : createSuccessResponse(data, timer.elapsed(), traceId);
+
+      // For backward compatibility, merge data into response at root level
+      const legacyResponse = error
+        ? {
+            ...response,
+            code: data.code,
+            signal: data.signal,
+            stdout: data.stdout,
+            stderr: data.stderr
+          }
+        : {
+            ...response,
+            ...data
+          };
+
+      res.status(error ? 400 : 200).json(legacyResponse);
     }
   );
 });

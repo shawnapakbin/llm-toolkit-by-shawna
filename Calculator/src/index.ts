@@ -9,6 +9,14 @@ import {
   hasUnsafePatterns,
   DEFAULT_PRECISION,
 } from "./policy";
+import {
+  ToolResponse,
+  ErrorCode,
+  OperationTimer,
+  generateTraceId,
+  createSuccessResponse,
+  createErrorResponse
+} from "@shared/types";
 
 dotenv.config();
 
@@ -49,20 +57,41 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
 });
 
 app.post("/tools/calculate_engineering", (req: Request<unknown, unknown, CalculateRequest>, res: Response) => {
+  const timer = new OperationTimer();
+  const traceId = generateTraceId();
+  
   const expression = req.body.expression?.trim();
 
   if (!isValidExpression(expression)) {
-    res.status(400).json({ error: "'expression' is required." });
+    const errorResponse = createErrorResponse(
+      ErrorCode.INVALID_INPUT,
+      "'expression' is required.",
+      timer.elapsed(),
+      traceId
+    );
+    res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
     return;
   }
 
   if (isExpressionTooLong(expression!)) {
-    res.status(400).json({ error: "Expression is too long. Maximum 1000 characters allowed." });
+    const errorResponse = createErrorResponse(
+      ErrorCode.INVALID_INPUT,
+      "Expression is too long. Maximum 1000 characters allowed.",
+      timer.elapsed(),
+      traceId
+    );
+    res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
     return;
   }
 
   if (hasUnsafePatterns(expression!)) {
-    res.status(403).json({ error: "Expression contains potentially unsafe patterns." });
+    const errorResponse = createErrorResponse(
+      ErrorCode.POLICY_BLOCKED,
+      "Expression contains potentially unsafe patterns.",
+      timer.elapsed(),
+      traceId
+    );
+    res.status(403).json({ ...errorResponse, error: errorResponse.errorMessage });
     return;
   }
 
@@ -70,7 +99,25 @@ app.post("/tools/calculate_engineering", (req: Request<unknown, unknown, Calcula
   const precision = validatePrecision(req.body.precision, configuredDefault);
 
   const result = evaluateExpression({ expression: expression!, precision });
-  res.status(result.success ? 200 : 400).json(result);
+  const timingMs = timer.elapsed();
+  
+  const response: ToolResponse = result.success
+    ? createSuccessResponse(result, timingMs, traceId)
+    : {
+        success: false,
+        errorCode: ErrorCode.EXECUTION_FAILED,
+        errorMessage: result.error || "Calculation failed",
+        data: result,
+        timingMs,
+        traceId
+      };
+  
+  // Backward compatibility: expose data fields at root + keep "error" field
+  res.status(result.success ? 200 : 400).json({
+    ...response,
+    ...response.data,
+    error: response.errorMessage
+  });
 });
 
 // Export app for testing

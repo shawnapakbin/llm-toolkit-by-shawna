@@ -23,6 +23,14 @@ import {
   validateConcurrencyLimit,
   DEFAULT_TIMEOUT_MS,
 } from "./policy";
+import {
+  ToolResponse,
+  ErrorCode,
+  OperationTimer,
+  generateTraceId,
+  createSuccessResponse,
+  createErrorResponse
+} from "@shared/types";
 
 dotenv.config();
 
@@ -72,6 +80,27 @@ function getConfig(apiKey?: string, region?: string, timeoutMs?: number): Browse
   };
 }
 
+// Helper to wrap responses with timing and traceId
+function wrapResponse(result: any, timingMs: number, traceId: string): any {
+  const response: ToolResponse = result.success
+    ? createSuccessResponse(result, timingMs, traceId)
+    : {
+        success: false,
+        errorCode: ErrorCode.EXECUTION_FAILED,
+        errorMessage: result.error || "Operation failed",
+        data: result,
+        timingMs,
+        traceId
+      };
+  
+  // Backward compatibility: expose data fields at root + keep "error" field
+  return {
+    ...response,
+    ...response.data,
+    error: response.errorMessage
+  };
+}
+
 // Health check endpoint
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "browserless-tool" });
@@ -80,18 +109,33 @@ app.get("/health", (_req, res) => {
 // Screenshot endpoint
 app.post("/screenshot", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
-        res.status(400).json({ success: false, error: urlValidation.error });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          urlValidation.error || "Invalid URL",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await takeScreenshot(config, req.body);
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -99,18 +143,33 @@ app.post("/screenshot", async (req, res) => {
 // PDF endpoint
 app.post("/pdf", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
-        res.status(400).json({ success: false, error: urlValidation.error });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          urlValidation.error || "Invalid URL",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await generatePDF(config, req.body);
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -118,18 +177,33 @@ app.post("/pdf", async (req, res) => {
 // Scrape endpoint
 app.post("/scrape", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
-        res.status(400).json({ success: false, error: urlValidation.error });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          urlValidation.error || "Invalid URL",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await scrapePage(config, req.body);
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -137,18 +211,33 @@ app.post("/scrape", async (req, res) => {
 // Content endpoint
 app.post("/content", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
-        res.status(400).json({ success: false, error: urlValidation.error });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          urlValidation.error || "Invalid URL",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await getContent(config, req.body);
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -156,18 +245,33 @@ app.post("/content", async (req, res) => {
 // Unblock endpoint
 app.post("/unblock", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
-        res.status(400).json({ success: false, error: urlValidation.error });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          urlValidation.error || "Invalid URL",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await unblockPage(config, req.body);
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -175,6 +279,9 @@ app.post("/unblock", async (req, res) => {
 // BQL endpoint
 app.post("/bql", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await executeBQL(config, {
@@ -183,9 +290,15 @@ app.post("/bql", async (req, res) => {
         operationName: req.body.operationName,
         replay: req.body.replay !== false, // Default to true for session recording
       });
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -193,21 +306,42 @@ app.post("/bql", async (req, res) => {
 // Function endpoint - execute custom Puppeteer code
 app.post("/function", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const code = req.body.code;
       
       if (!code || typeof code !== "string") {
-        res.status(400).json({ success: false, error: "Code is required and must be a string" });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "Code is required and must be a string",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
       if (isCodeTooLong(code)) {
-        res.status(400).json({ success: false, error: "Code is too long. Maximum 10000 characters allowed." });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "Code is too long. Maximum 10000 characters allowed.",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
       if (hasUnsafeCodePatterns(code)) {
-        res.status(403).json({ success: false, error: "Code contains potentially unsafe patterns" });
+        const errorResponse = createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          "Code contains potentially unsafe patterns",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(403).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
@@ -217,9 +351,15 @@ app.post("/function", async (req, res) => {
         context: req.body.context,
         timeout: req.body.timeoutMs,
       });
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -227,6 +367,9 @@ app.post("/function", async (req, res) => {
 // Download endpoint - retrieve files that Chrome downloads
 app.post("/download", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await downloadFile(config, {
@@ -234,9 +377,15 @@ app.post("/download", async (req, res) => {
         context: req.body.context,
         timeout: req.body.timeoutMs,
       });
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -244,10 +393,19 @@ app.post("/download", async (req, res) => {
 // Export endpoint - fetch URL and stream content
 app.post("/export", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
-        res.status(400).json({ success: false, error: urlValidation.error });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          urlValidation.error || "Invalid URL",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
@@ -257,9 +415,15 @@ app.post("/export", async (req, res) => {
         includeResources: req.body.includeResources ?? false,
         timeout: req.body.timeoutMs,
       });
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });
@@ -267,10 +431,19 @@ app.post("/export", async (req, res) => {
 // Performance endpoint - Lighthouse audits
 app.post("/performance", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
-        res.status(400).json({ success: false, error: urlValidation.error });
+        const errorResponse = createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          urlValidation.error || "Invalid URL",
+          timer.elapsed(),
+          traceId
+        );
+        res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
       }
 
@@ -280,9 +453,15 @@ app.post("/performance", async (req, res) => {
         config: req.body.config,
         timeout: req.body.timeoutMs,
       });
-      res.json(result);
+      res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      const errorResponse = createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        error.message,
+        timer.elapsed(),
+        traceId
+      );
+      res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
   });
 });

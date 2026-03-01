@@ -29,6 +29,7 @@ const config: Config = {
   },
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
+    "^@shared/(.*)$": "<rootDir>/shared/$1",
   },
   transform: {
     "^.+\\.tsx?$": [
@@ -37,6 +38,10 @@ const config: Config = {
         tsconfig: {
           jsx: "react",
           esModuleInterop: true,
+          baseUrl: ".",
+          paths: {
+            "@shared/*": ["shared/*"]
+          }
         },
       },
     ],

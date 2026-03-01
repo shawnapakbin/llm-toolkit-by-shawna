@@ -15,45 +15,45 @@ This plan is tailored to the current LM Studio Tools workspace:
 
 ---
 
-## Phase 1 — Foundation + Safety
+## Phase 1 — Foundation + Safety ✅ COMPLETE
 
-### 1) Unified Tool Contracts
-- [ ] Standardize tool response envelope for all tools:
+### 1) Unified Tool Contracts ✅
+- [x] Standardize tool response envelope for all tools:
   - `success`, `errorCode`, `errorMessage`, `data`, `timingMs`, `traceId`
-- [ ] Add consistent input validation errors (`INVALID_INPUT`, `TIMEOUT`, `POLICY_BLOCKED`, `EXECUTION_FAILED`)
-- [ ] Ensure MCP and HTTP return equivalent payload semantics
+- [x] Add consistent input validation errors (`INVALID_INPUT`, `TIMEOUT`, `POLICY_BLOCKED`, `EXECUTION_FAILED`)
+- [x] Ensure MCP and HTTP return equivalent payload semantics
 
 **Acceptance**: Same request gets equivalent structure from HTTP and MCP paths.
 
-### 2) Terminal Hardening
-- [ ] Add command allowlist mode (default on)
-- [ ] Add deny patterns for destructive commands (format/del/rm -rf/network exfil)
-- [ ] Restrict `cwd` to workspace subtree (no parent traversal)
-- [ ] Add max stdout/stderr truncation with explicit truncation markers
+### 2) Terminal Hardening ✅
+- [x] Add command allowlist mode (default on)
+- [x] Add deny patterns for destructive commands (format/del/rm -rf/network exfil)
+- [x] Restrict `cwd` to workspace subtree (no parent traversal)
+- [x] Add max stdout/stderr truncation with explicit truncation markers
 
 **Acceptance**: Unsafe commands are blocked with `POLICY_BLOCKED` and audit metadata.
 
-### 3) WebBrowser Hardening
-- [ ] Enforce URL allow/deny policy (block localhost/private ranges by default)
-- [ ] Add content-type checks and max download bytes guard
-- [ ] Add redirect limit and protocol restrictions (`http/https` only)
-- [ ] Add explicit SSRF error codes
+### 3) WebBrowser Hardening ✅
+- [x] Enforce URL allow/deny policy (block localhost/private ranges by default)
+- [x] Add content-type checks and max download bytes guard
+- [x] Add redirect limit and protocol restrictions (`http/https` only)
+- [x] Add explicit SSRF error codes
 
 **Acceptance**: Disallowed/internal URLs fail fast and never fetch content.
 
-### 4) Calculator Reliability
-- [ ] Keep symbol normalization map versioned and test-covered
-- [ ] Add clearer unit mismatch hints in error payload
-- [ ] Add deterministic formatting options (`fixed`, `scientific`, `auto`)
+### 4) Calculator Reliability ✅
+- [x] Keep symbol normalization map versioned and test-covered
+- [x] Add clearer unit mismatch hints in error payload
+- [x] Add deterministic formatting options (`fixed`, `scientific`, `auto`)
 
 **Acceptance**: `sin(30°)`, `sin(π/6)`, superscripts, and engineering prefixes pass consistently.
 
-### 5) Browserless Hardening
-- [ ] Add API key validation and rotation support in environment
-- [ ] Add concurrency limiting to prevent quota exhaustion (default: 5 concurrent requests)
-- [ ] Add region failover logic for multi-region deployment
-- [ ] Add CAPTCHA solve failure handling and fallback strategies
-- [ ] Add screenshot/PDF timeout guards for large pages
+### 5) Browserless Hardening ✅
+- [x] Add API key validation and rotation support in environment
+- [x] Add concurrency limiting to prevent quota exhaustion (default: 5 concurrent requests)
+- [x] Add region failover logic for multi-region deployment
+- [x] Add CAPTCHA solve failure handling and fallback strategies
+- [x] Add screenshot/PDF timeout guards for large pages
 
 **Acceptance**: Concurrent requests queue when limit reached vs. failing immediately.
 

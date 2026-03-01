@@ -16,7 +16,8 @@
     "test:watch": "jest --watch",
     "test:ci": "jest --ci --coverage --maxWorkers=2",
     "type-check": "tsc --noEmit",
-    "build": "npm run build:tools && npm run build:memory",
+    "build": "npm run build:shared && npm run build:tools && npm run build:memory",
+    "build:shared": "npm run -w shared build",
     "build:tools": "npm run -w Terminal build && npm run -w WebBrowser build && npm run -w Calculator build && npm run -w Clock build && npm run -w Browserless build",
     "build:memory": "npm run -w Memory build",
     "dev": "npm run dev -w Terminal",
@@ -50,6 +51,7 @@
     "typescript": "^5.8.2"
   },
   "workspaces": [
+    "shared",
     "Terminal",
     "WebBrowser",
     "Calculator",
