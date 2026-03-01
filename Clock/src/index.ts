@@ -2,6 +2,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
 import { getClockSnapshot } from "./clock";
+import { isTimeZoneTooLong, isLocaleTooLong } from "./policy";
 
 dotenv.config();
 
@@ -42,14 +43,34 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
 });
 
 app.post("/tools/get_current_datetime", (req: Request<unknown, unknown, ClockRequestBody>, res: Response) => {
+  const timeZone = req.body.timeZone?.trim();
+  const locale = req.body.locale?.trim();
+
+  // Validate input lengths to prevent DoS
+  if (timeZone && isTimeZoneTooLong(timeZone)) {
+    res.status(400).json({ success: false, error: "Timezone string is too long." });
+    return;
+  }
+
+  if (locale && isLocaleTooLong(locale)) {
+    res.status(400).json({ success: false, error: "Locale string is too long." });
+    return;
+  }
+
   const result = getClockSnapshot({
-    timeZone: req.body.timeZone,
-    locale: req.body.locale
+    timeZone,
+    locale
   });
 
   res.status(result.success ? 200 : 400).json(result);
 });
 
-app.listen(PORT, () => {
-  console.log(`LM Studio Clock Tool listening on http://localhost:${PORT}`);
-});
+// Export app for testing
+export { app };
+
+// Only start server if this is the main module
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`LM Studio Clock Tool listening on http://localhost:${PORT}`);
+  });
+}

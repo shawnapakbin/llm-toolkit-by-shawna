@@ -14,6 +14,15 @@ import {
   performanceLighthouse,
   type BrowserlessConfig,
 } from "./browserless";
+import {
+  validateTimeout,
+  isValidApiKey,
+  validateTargetUrl,
+  isCodeTooLong,
+  hasUnsafeCodePatterns,
+  validateConcurrencyLimit,
+  DEFAULT_TIMEOUT_MS,
+} from "./policy";
 
 dotenv.config();
 
@@ -27,8 +36,8 @@ app.use(express.json({ limit: "10mb" }));
 // Get API key from environment or request
 const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY || "";
 const DEFAULT_REGION = process.env.BROWSERLESS_DEFAULT_REGION || "production-sfo";
-const DEFAULT_TIMEOUT_MS = Number(process.env.BROWSERLESS_DEFAULT_TIMEOUT_MS ?? 30000);
-const CONCURRENCY_LIMIT = Number(process.env.BROWSERLESS_CONCURRENCY_LIMIT ?? 5);
+const CONFIGURED_TIMEOUT_MS = Number(process.env.BROWSERLESS_DEFAULT_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
+const CONCURRENCY_LIMIT = validateConcurrencyLimit(Number(process.env.BROWSERLESS_CONCURRENCY_LIMIT));
 
 // Concurrency queue system
 let activeRequests = 0;
@@ -52,19 +61,19 @@ async function executeWithConcurrencyLimit<T>(
 function getConfig(apiKey?: string, region?: string, timeoutMs?: number): BrowserlessConfig {
   const effectiveApiKey = apiKey || BROWSERLESS_API_KEY;
   
-  if (!effectiveApiKey) {
-    throw new Error("Browserless API key is required. Provide via BROWSERLESS_API_KEY environment variable or apiKey in request body.");
+  if (!isValidApiKey(effectiveApiKey)) {
+    throw new Error("Browserless API key is required and must be at least 10 characters. Provide via BROWSERLESS_API_KEY environment variable or apiKey in request body.");
   }
 
   return {
     apiKey: effectiveApiKey,
     region: region as any || DEFAULT_REGION,
-    timeoutMs: timeoutMs || DEFAULT_TIMEOUT_MS,
+    timeoutMs: validateTimeout(timeoutMs || CONFIGURED_TIMEOUT_MS),
   };
 }
 
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "browserless-tool" });
 });
 
@@ -72,6 +81,12 @@ app.get("/health", (req, res) => {
 app.post("/screenshot", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     try {
+      const urlValidation = validateTargetUrl(req.body.url);
+      if (!urlValidation.valid) {
+        res.status(400).json({ success: false, error: urlValidation.error });
+        return;
+      }
+
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await takeScreenshot(config, req.body);
       res.json(result);
@@ -85,6 +100,12 @@ app.post("/screenshot", async (req, res) => {
 app.post("/pdf", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     try {
+      const urlValidation = validateTargetUrl(req.body.url);
+      if (!urlValidation.valid) {
+        res.status(400).json({ success: false, error: urlValidation.error });
+        return;
+      }
+
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await generatePDF(config, req.body);
       res.json(result);
@@ -98,6 +119,12 @@ app.post("/pdf", async (req, res) => {
 app.post("/scrape", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     try {
+      const urlValidation = validateTargetUrl(req.body.url);
+      if (!urlValidation.valid) {
+        res.status(400).json({ success: false, error: urlValidation.error });
+        return;
+      }
+
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await scrapePage(config, req.body);
       res.json(result);
@@ -111,6 +138,12 @@ app.post("/scrape", async (req, res) => {
 app.post("/content", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     try {
+      const urlValidation = validateTargetUrl(req.body.url);
+      if (!urlValidation.valid) {
+        res.status(400).json({ success: false, error: urlValidation.error });
+        return;
+      }
+
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await getContent(config, req.body);
       res.json(result);
@@ -124,6 +157,12 @@ app.post("/content", async (req, res) => {
 app.post("/unblock", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     try {
+      const urlValidation = validateTargetUrl(req.body.url);
+      if (!urlValidation.valid) {
+        res.status(400).json({ success: false, error: urlValidation.error });
+        return;
+      }
+
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await unblockPage(config, req.body);
       res.json(result);
@@ -155,6 +194,23 @@ app.post("/bql", async (req, res) => {
 app.post("/function", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     try {
+      const code = req.body.code;
+      
+      if (!code || typeof code !== "string") {
+        res.status(400).json({ success: false, error: "Code is required and must be a string" });
+        return;
+      }
+
+      if (isCodeTooLong(code)) {
+        res.status(400).json({ success: false, error: "Code is too long. Maximum 10000 characters allowed." });
+        return;
+      }
+
+      if (hasUnsafeCodePatterns(code)) {
+        res.status(403).json({ success: false, error: "Code contains potentially unsafe patterns" });
+        return;
+      }
+
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await executeFunction(config, {
         code: req.body.code,
@@ -189,6 +245,12 @@ app.post("/download", async (req, res) => {
 app.post("/export", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     try {
+      const urlValidation = validateTargetUrl(req.body.url);
+      if (!urlValidation.valid) {
+        res.status(400).json({ success: false, error: urlValidation.error });
+        return;
+      }
+
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await exportPage(config, {
         url: req.body.url,
@@ -206,6 +268,12 @@ app.post("/export", async (req, res) => {
 app.post("/performance", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     try {
+      const urlValidation = validateTargetUrl(req.body.url);
+      if (!urlValidation.valid) {
+        res.status(400).json({ success: false, error: urlValidation.error });
+        return;
+      }
+
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await performanceLighthouse(config, {
         url: req.body.url,
@@ -219,10 +287,16 @@ app.post("/performance", async (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Browserless tool server running on http://localhost:${PORT}`);
-  
-  if (!BROWSERLESS_API_KEY) {
-    console.warn("WARNING: BROWSERLESS_API_KEY not set in environment. API key must be provided with each request.");
-  }
-});
+// Export app for testing
+export { app };
+
+// Only start server if this is the main module
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Browserless tool server running on http://localhost:${PORT}`);
+    
+    if (!BROWSERLESS_API_KEY) {
+      console.warn("WARNING: BROWSERLESS_API_KEY not set in environment. API key must be provided with each request.");
+    }
+  });
+}

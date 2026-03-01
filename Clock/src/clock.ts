@@ -1,3 +1,5 @@
+import { isValidTimeZone, normalizeLocale } from "./policy";
+
 export type ClockRequest = {
   timeZone?: string;
   locale?: string;
@@ -31,29 +33,6 @@ export type ClockData = {
 type ClockResult =
   | { success: true; data: ClockData }
   | { success: false; error: string };
-
-function isValidTimeZone(timeZone: string): boolean {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date());
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function normalizeLocale(locale?: string): string {
-  if (!locale || !locale.trim()) {
-    return "en-US";
-  }
-
-  const trimmed = locale.trim();
-  try {
-    const supported = Intl.DateTimeFormat.supportedLocalesOf([trimmed]);
-    return supported.length > 0 ? trimmed : "en-US";
-  } catch {
-    return "en-US";
-  }
-}
 
 function getOffsetMinutes(date: Date, timeZone: string): number {
   const dtf = new Intl.DateTimeFormat("en-US", {
