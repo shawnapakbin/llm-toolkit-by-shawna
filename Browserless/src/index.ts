@@ -31,8 +31,14 @@ import {
   createSuccessResponse,
   createErrorResponse
 } from "@shared/types";
+import { getRegistry } from "../../Observability/src/metrics";
 
 dotenv.config();
+
+// Setup observability metrics
+const metrics = getRegistry();
+const executionCounter = metrics.counter('browserless_requests_total', 'Total Browserless API requests');
+const durationHistogram = metrics.histogram('browserless_request_duration_ms', 'Browserless request duration in milliseconds');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3003;
@@ -82,6 +88,14 @@ function getConfig(apiKey?: string, region?: string, timeoutMs?: number): Browse
 
 // Helper to wrap responses with timing and traceId
 function wrapResponse(result: any, timingMs: number, traceId: string): any {
+  // Record metrics
+  if (!result.success) {
+    executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+  } else {
+    executionCounter.inc({ status: 'success' });
+    durationHistogram.observe(timingMs);
+  }
+
   const response: ToolResponse = result.success
     ? createSuccessResponse(result, timingMs, traceId)
     : {
@@ -115,10 +129,12 @@ app.post("/screenshot", async (req, res) => {
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
+        const timingMs = timer.elapsed();
+        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
-          timer.elapsed(),
+          timingMs,
           traceId
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -129,10 +145,12 @@ app.post("/screenshot", async (req, res) => {
       const result = await takeScreenshot(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
+      const timingMs = timer.elapsed();
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
         error.message,
-        timer.elapsed(),
+        timingMs,
         traceId
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -149,10 +167,12 @@ app.post("/pdf", async (req, res) => {
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
+        const timingMs = timer.elapsed();
+        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
-          timer.elapsed(),
+          timingMs,
           traceId
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -163,10 +183,12 @@ app.post("/pdf", async (req, res) => {
       const result = await generatePDF(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
+      const timingMs = timer.elapsed();
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
         error.message,
-        timer.elapsed(),
+        timingMs,
         traceId
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -183,10 +205,12 @@ app.post("/scrape", async (req, res) => {
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
+        const timingMs = timer.elapsed();
+        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
-          timer.elapsed(),
+          timingMs,
           traceId
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -197,10 +221,12 @@ app.post("/scrape", async (req, res) => {
       const result = await scrapePage(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
+      const timingMs = timer.elapsed();
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
         error.message,
-        timer.elapsed(),
+        timingMs,
         traceId
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -217,10 +243,12 @@ app.post("/content", async (req, res) => {
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
+        const timingMs = timer.elapsed();
+        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
-          timer.elapsed(),
+          timingMs,
           traceId
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -231,10 +259,12 @@ app.post("/content", async (req, res) => {
       const result = await getContent(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
+      const timingMs = timer.elapsed();
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
         error.message,
-        timer.elapsed(),
+        timingMs,
         traceId
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -251,10 +281,12 @@ app.post("/unblock", async (req, res) => {
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
+        const timingMs = timer.elapsed();
+        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
-          timer.elapsed(),
+          timingMs,
           traceId
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
@@ -265,10 +297,12 @@ app.post("/unblock", async (req, res) => {
       const result = await unblockPage(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
     } catch (error: any) {
+      const timingMs = timer.elapsed();
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
         error.message,
-        timer.elapsed(),
+        timingMs,
         traceId
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });

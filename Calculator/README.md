@@ -227,7 +227,7 @@ Add this configuration to your LM Studio `mcp.json`:
   "mcpServers": {
     "calculator": {
       "command": "node",
-      "args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Calculator/dist/mcp-server.js"],
+      "args": ["<REPO_ROOT>/Calculator/dist/mcp-server.js"],
       "env": {
         "CALCULATOR_DEFAULT_PRECISION": "12",
         "CALCULATOR_MAX_PRECISION": "20"
@@ -236,6 +236,8 @@ Add this configuration to your LM Studio `mcp.json`:
   }
 }
 ```
+
+**Tip**: From repo root, run `npm run mcp:print-config` to print a ready-to-paste config with absolute paths for your current folder.
 
 **Environment Variables** (optional):
 - `CALCULATOR_DEFAULT_PRECISION`: Default decimal places (1–20)

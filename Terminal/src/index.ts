@@ -18,8 +18,14 @@ import {
   createSuccessResponse,
   createErrorResponse,
 } from "@shared/types";
+import { getRegistry } from "../../Observability/src/metrics";
 
 dotenv.config();
+
+// Setup observability metrics
+const metrics = getRegistry();
+const executionCounter = metrics.counter('terminal_command_executions_total', 'Total terminal command executions');
+const durationHistogram = metrics.histogram('terminal_command_duration_ms', 'Terminal command execution duration in milliseconds');
 
 const app = express();
 app.use(cors());
@@ -130,50 +136,54 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
 });
 
 app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteRequest>, res: Response) => {
-  const timer = new OperationTimer();
-  const traceId = generateTraceId();
-  const command = req.body.command?.trim();
+  try {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    const command = req.body.command?.trim();
 
-  if (!command) {
-    const response = createErrorResponse(
-      ErrorCode.INVALID_INPUT,
-      "'command' is required.",
-      timer.elapsed(),
-      traceId
-    );
-    res.status(400).json(response);
-    return;
-  }
+    if (!command) {
+      const response = createErrorResponse(
+        ErrorCode.INVALID_INPUT,
+        "'command' is required.",
+        timer.elapsed(),
+        traceId
+      );
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
+      res.status(400).json(response);
+      return;
+    }
 
-  if (isCommandBlocked(command)) {
-    const response = createErrorResponse(
-      ErrorCode.POLICY_BLOCKED,
-      "Command blocked by terminal safety policy.",
-      timer.elapsed(),
-      traceId
-    );
-    res.status(403).json(response);
-    return;
-  }
+    if (isCommandBlocked(command)) {
+      const response = createErrorResponse(
+        ErrorCode.POLICY_BLOCKED,
+        "Command blocked by terminal safety policy.",
+        timer.elapsed(),
+        traceId
+      );
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.POLICY_BLOCKED });
+      res.status(403).json(response);
+      return;
+    }
 
-  const safeCwd = resolveSafeCwd(WORKSPACE_ROOT, req.body.cwd);
-  if (!safeCwd.ok) {
-    const response = createErrorResponse(
-      ErrorCode.POLICY_BLOCKED,
-      safeCwd.message,
-      timer.elapsed(),
-      traceId
-    );
-    res.status(403).json(response);
-    return;
-  }
+    const safeCwd = resolveSafeCwd(WORKSPACE_ROOT, req.body.cwd);
+    if (!safeCwd.ok) {
+      const response = createErrorResponse(
+        ErrorCode.POLICY_BLOCKED,
+        safeCwd.message,
+        timer.elapsed(),
+        traceId
+      );
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.POLICY_BLOCKED });
+      res.status(403).json(response);
+      return;
+    }
 
-  const timeoutFromReq = Number(req.body.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-  const timeoutMs = Number.isFinite(timeoutFromReq)
-    ? Math.min(Math.max(timeoutFromReq, 1), MAX_TIMEOUT_MS)
-    : DEFAULT_TIMEOUT_MS;
+    const timeoutFromReq = Number(req.body.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    const timeoutMs = Number.isFinite(timeoutFromReq)
+      ? Math.min(Math.max(timeoutFromReq, 1), MAX_TIMEOUT_MS)
+      : DEFAULT_TIMEOUT_MS;
 
-  exec(
+    exec(
     command,
     {
       timeout: timeoutMs,
@@ -182,6 +192,7 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
       maxBuffer: 10 * 1024 * 1024
     },
     (error, stdout, stderr) => {
+      const duration = timer.elapsed();
       const truncatedStdout = truncateOutput(stdout, MAX_OUTPUT_CHARS);
       const truncatedStderr = truncateOutput(stderr, MAX_OUTPUT_CHARS);
 
@@ -197,14 +208,21 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
         timeoutMs
       };
 
+      if (error) {
+        executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+      } else {
+        executionCounter.inc({ status: 'success', code: String(data.code) });
+      }
+      durationHistogram.observe(duration);
+
       const response: ToolResponse = error
         ? createErrorResponse(
             ErrorCode.EXECUTION_FAILED,
             "Command execution failed.",
-            timer.elapsed(),
+            duration,
             traceId
           )
-        : createSuccessResponse(data, timer.elapsed(), traceId);
+        : createSuccessResponse(data, duration, traceId);
 
       // For backward compatibility, merge data into response at root level
       const legacyResponse = error
@@ -223,6 +241,16 @@ app.post("/tools/run_terminal_command", (req: Request<unknown, unknown, ExecuteR
       res.status(error ? 400 : 200).json(legacyResponse);
     }
   );
+  } catch (error) {
+    const traceId = generateTraceId();
+    const response = createErrorResponse(
+      ErrorCode.EXECUTION_FAILED,
+      'An unexpected error occurred',
+      0,
+      traceId
+    );
+    res.status(500).json(response);
+  }
 });
 
 if (require.main === module) {

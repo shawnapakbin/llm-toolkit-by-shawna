@@ -10,8 +10,14 @@ import {
   createSuccessResponse,
   createErrorResponse
 } from "@shared/types";
+import { getRegistry } from "../../Observability/src/metrics";
 
 dotenv.config();
+
+// Setup observability metrics
+const metrics = getRegistry();
+const executionCounter = metrics.counter('browser_requests_total', 'Total web browser requests');
+const durationHistogram = metrics.histogram('browser_request_duration_ms', 'Web browser request duration in milliseconds');
 
 const app = express();
 app.use(cors());
@@ -91,6 +97,13 @@ app.post("/tools/browse_web", async (req: Request<unknown, unknown, BrowseReques
   });
 
   const timingMs = timer.elapsed();
+  
+  if (!result.success) {
+    executionCounter.inc({ status: 'error', errorCode: result.errorCode || ErrorCode.EXECUTION_FAILED });
+  } else {
+    executionCounter.inc({ status: 'success' });
+    durationHistogram.observe(timingMs);
+  }
   
   const response: ToolResponse = result.success
     ? createSuccessResponse(result, timingMs, traceId)

@@ -69,7 +69,7 @@ Add this configuration to your LM Studio `mcp.json`:
   "mcpServers": {
     "browserless": {
       "command": "node",
-      "args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Browserless/dist/mcp-server.js"],
+      "args": ["<REPO_ROOT>/Browserless/dist/mcp-server.js"],
       "env": {
         "BROWSERLESS_API_KEY": "your-api-token-here",
         "BROWSERLESS_DEFAULT_REGION": "production-sfo",
@@ -82,7 +82,7 @@ Add this configuration to your LM Studio `mcp.json`:
 }
 ```
 
-**Note**: Update the path to match your installation directory.
+**Tip**: From repo root, run `npm run mcp:print-config` to print a ready-to-paste config with absolute paths for your current folder.
 
 ### As HTTP Server
 

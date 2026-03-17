@@ -178,7 +178,7 @@ Add this configuration to your LM Studio `mcp.json`:
   "mcpServers": {
     "web-browser": {
       "command": "node",
-      "args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/WebBrowser/dist/mcp-server.js"],
+      "args": ["<REPO_ROOT>/WebBrowser/dist/mcp-server.js"],
       "env": {
         "BROWSER_DEFAULT_TIMEOUT_MS": "20000",
         "BROWSER_MAX_TIMEOUT_MS": "60000",
@@ -188,6 +188,8 @@ Add this configuration to your LM Studio `mcp.json`:
   }
 }
 ```
+
+**Tip**: From repo root, run `npm run mcp:print-config` to print a ready-to-paste config with absolute paths for your current folder.
 
 **Environment Variables** (optional):
 - `BROWSER_DEFAULT_TIMEOUT_MS`: Default timeout (1–60000 ms)

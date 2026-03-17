@@ -92,7 +92,7 @@ Response:
   "mcpServers": {
     "terminal": {
       "command": "node",
-      "args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Terminal/dist/mcp-server.js"],
+      "args": ["<REPO_ROOT>/Terminal/dist/mcp-server.js"],
       "env": {
         "TERMINAL_DEFAULT_TIMEOUT_MS": "60000",
         "TERMINAL_MAX_TIMEOUT_MS": "120000"
@@ -102,7 +102,7 @@ Response:
 }
 ```
 
-**Note**: Update the path to match your installation directory.
+**Tip**: From repo root, run `npm run mcp:print-config` to print a ready-to-paste config with absolute paths for your current folder.
 
 You can run MCP mode directly for testing with (from `Terminal` folder):
 - `npm run dev:mcp`

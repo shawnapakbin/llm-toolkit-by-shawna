@@ -11,8 +11,14 @@ import {
   createSuccessResponse,
   createErrorResponse
 } from "@shared/types";
+import { getRegistry } from "../../Observability/src/metrics";
 
 dotenv.config();
+
+// Setup observability metrics
+const metrics = getRegistry();
+const executionCounter = metrics.counter('clock_queries_total', 'Total clock/datetime queries');
+const durationHistogram = metrics.histogram('clock_query_duration_ms', 'Clock query duration in milliseconds');
 
 const app = express();
 app.use(cors());
@@ -86,6 +92,13 @@ app.post("/tools/get_current_datetime", (req: Request<unknown, unknown, ClockReq
   });
   
   const timingMs = timer.elapsed();
+  
+  if (!result.success) {
+    executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+  } else {
+    executionCounter.inc({ status: 'success' });
+    durationHistogram.observe(timingMs);
+  }
   
   const response: ToolResponse = result.success
     ? createSuccessResponse(result, timingMs, traceId)

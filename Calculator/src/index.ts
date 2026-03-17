@@ -17,8 +17,14 @@ import {
   createSuccessResponse,
   createErrorResponse
 } from "@shared/types";
+import { getRegistry } from "../../Observability/src/metrics";
 
 dotenv.config();
+
+// Setup observability metrics
+const metrics = getRegistry();
+const executionCounter = metrics.counter('calculator_evaluations_total', 'Total calculator expression evaluations');
+const durationHistogram = metrics.histogram('calculator_duration_ms', 'Calculator evaluation duration in milliseconds');
 
 const app = express();
 app.use(cors());
@@ -57,67 +63,85 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
 });
 
 app.post("/tools/calculate_engineering", (req: Request<unknown, unknown, CalculateRequest>, res: Response) => {
-  const timer = new OperationTimer();
-  const traceId = generateTraceId();
-  
-  const expression = req.body.expression?.trim();
+  try {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
+    
+    const expression = req.body.expression?.trim();
 
-  if (!isValidExpression(expression)) {
-    const errorResponse = createErrorResponse(
-      ErrorCode.INVALID_INPUT,
-      "'expression' is required.",
-      timer.elapsed(),
-      traceId
-    );
-    res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
-    return;
-  }
-
-  if (isExpressionTooLong(expression!)) {
-    const errorResponse = createErrorResponse(
-      ErrorCode.INVALID_INPUT,
-      "Expression is too long. Maximum 1000 characters allowed.",
-      timer.elapsed(),
-      traceId
-    );
-    res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
-    return;
-  }
-
-  if (hasUnsafePatterns(expression!)) {
-    const errorResponse = createErrorResponse(
-      ErrorCode.POLICY_BLOCKED,
-      "Expression contains potentially unsafe patterns.",
-      timer.elapsed(),
-      traceId
-    );
-    res.status(403).json({ ...errorResponse, error: errorResponse.errorMessage });
-    return;
-  }
-
-  const configuredDefault = Number(process.env.CALCULATOR_DEFAULT_PRECISION ?? DEFAULT_PRECISION);
-  const precision = validatePrecision(req.body.precision, configuredDefault);
-
-  const result = evaluateExpression({ expression: expression!, precision });
-  const timingMs = timer.elapsed();
-  
-  const response: ToolResponse = result.success
-    ? createSuccessResponse(result, timingMs, traceId)
-    : {
-        success: false,
-        errorCode: ErrorCode.EXECUTION_FAILED,
-        errorMessage: result.error || "Calculation failed",
-        data: result,
-        timingMs,
+    if (!isValidExpression(expression)) {
+      const errorResponse = createErrorResponse(
+        ErrorCode.INVALID_INPUT,
+        "'expression' is required.",
+        timer.elapsed(),
         traceId
-      };
-  
-  // Backward compatibility: expose data fields at root + keep "error" field
-  res.status(result.success ? 200 : 400).json({
-    ...response,
-    ...response.data,
-    error: response.errorMessage
-  });
+      );
+      res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
+      return;
+    }
+
+    if (isExpressionTooLong(expression!)) {
+      const errorResponse = createErrorResponse(
+        ErrorCode.INVALID_INPUT,
+        "Expression is too long. Maximum 1000 characters allowed.",
+        timer.elapsed(),
+        traceId
+      );
+      res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
+      return;
+    }
+
+    if (hasUnsafePatterns(expression!)) {
+      const errorResponse = createErrorResponse(
+        ErrorCode.POLICY_BLOCKED,
+        "Expression contains potentially unsafe patterns.",
+        timer.elapsed(),
+        traceId
+      );
+      res.status(403).json({ ...errorResponse, error: errorResponse.errorMessage });
+      return;
+    }
+
+    const configuredDefault = Number(process.env.CALCULATOR_DEFAULT_PRECISION ?? DEFAULT_PRECISION);
+    const precision = validatePrecision(req.body.precision, configuredDefault);
+
+    const result = evaluateExpression({ expression: expression!, precision });
+    const timingMs = timer.elapsed();
+    
+    if (!result.success) {
+      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+    } else {
+      executionCounter.inc({ status: 'success' });
+      durationHistogram.observe(timingMs);
+    }
+    
+    const response: ToolResponse = result.success
+      ? createSuccessResponse(result, timingMs, traceId)
+      : {
+          success: false,
+          errorCode: ErrorCode.EXECUTION_FAILED,
+          errorMessage: result.error || "Calculation failed",
+          data: result,
+          timingMs,
+          traceId
+        };
+    
+    // Backward compatibility: expose data fields at root + keep "error" field
+    res.status(result.success ? 200 : 400).json({
+      ...response,
+      ...response.data,
+      error: response.errorMessage
+    });
+  } catch (error) {
+    const traceId = generateTraceId();
+    const response = createErrorResponse(
+      ErrorCode.EXECUTION_FAILED,
+      'An unexpected error occurred',
+      0,
+      traceId
+    );
+    res.status(500).json({...response, error: response.errorMessage });
+  }
 });
 
 // Export app for testing
