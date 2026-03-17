@@ -12,6 +12,7 @@ const config: Config = {
     "Terminal/src/**/*.ts",
     "WebBrowser/src/**/*.ts",
     "Calculator/src/**/*.ts",
+    "DocumentScraper/src/**/*.ts",
     "Clock/src/**/*.ts",
     "Browserless/src/**/*.ts",
     "Memory/src/**/*.ts",

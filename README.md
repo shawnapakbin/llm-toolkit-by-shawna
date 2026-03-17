@@ -29,15 +29,17 @@ npm run build
 npm run check:ci     # Biome format + lint
 npm run type-check   # TypeScript strict mode
 npm test:ci          # Jest tests (80%+ coverage)
+npm run startup:check # Workspace readiness (MCP binaries + config sync)
 ```
 
 ## Architecture
 
-### 5 Core Tools (v1 → v2 compatibility maintained)
+### 6 Core Tools (v1 → v2 compatibility maintained)
 
 - **[Terminal](Terminal/README.md)** — Execute shell commands (OS-aware: Windows/macOS/Linux) ✅
 - **[WebBrowser](WebBrowser/README.md)** — Fetch + parse web pages (SSRF-protected) ✅
 - **[Calculator](Calculator/README.md)** — Math expressions (engineering notation, symbol normalization) ✅
+- **[DocumentScraper](DocumentScraper/README.md)** — Read documents with structured extraction + encrypted PDF detection ✅
 - **[Clock](Clock/README.md)** — Date/time + timezones (IANA + locale formatting) ✅
 - **[Browserless](Browserless/README.md)** — Advanced browser automation (screenshots, PDFs, BrowserQL) ✅
 
@@ -66,7 +68,10 @@ npm run check:ci       # Biome: format + lint ✓
 npm run type-check     # TypeScript strict mode ✓
 npm run test:ci        # Jest: 80%+ coverage ✓
 npm run build          # Compilation check ✓
+npm run startup:check:strict # Startup readiness + strict env gate ✓
 ```
+
+`startup:check:strict` requires `BROWSERLESS_API_KEY` to be set.
 
 ### Standards
 
@@ -107,6 +112,12 @@ git push origin feat/description
 
 Update your LM Studio `mcp.json`:
 
+```bash
+npm run mcp:print-config
+```
+
+Use the generated JSON as-is (paths are resolved for your current local folder). If you edit manually, use `<REPO_ROOT>` as your checked-out project path.
+
 ## Complete `mcp.json` Example
 
 ```json
@@ -114,7 +125,7 @@ Update your LM Studio `mcp.json`:
 	"mcpServers": {
 		"terminal": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Terminal/dist/mcp-server.js"],
+			"args": ["<REPO_ROOT>/Terminal/dist/mcp-server.js"],
 			"env": {
 				"TERMINAL_DEFAULT_TIMEOUT_MS": "60000",
 				"TERMINAL_MAX_TIMEOUT_MS": "120000"
@@ -122,7 +133,7 @@ Update your LM Studio `mcp.json`:
 		},
 		"web-browser": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/WebBrowser/dist/mcp-server.js"],
+			"args": ["<REPO_ROOT>/WebBrowser/dist/mcp-server.js"],
 			"env": {
 				"BROWSER_DEFAULT_TIMEOUT_MS": "20000",
 				"BROWSER_MAX_TIMEOUT_MS": "60000",
@@ -131,15 +142,26 @@ Update your LM Studio `mcp.json`:
 		},
 		"calculator": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Calculator/dist/mcp-server.js"],
+			"args": ["<REPO_ROOT>/Calculator/dist/mcp-server.js"],
 			"env": {
 				"CALCULATOR_DEFAULT_PRECISION": "12",
 				"CALCULATOR_MAX_PRECISION": "20"
 			}
 		},
+		"document-scraper": {
+			"command": "node",
+			"args": ["<REPO_ROOT>/DocumentScraper/dist/mcp-server.js"],
+			"env": {
+				"DOC_SCRAPER_DEFAULT_TIMEOUT_MS": "20000",
+				"DOC_SCRAPER_MAX_TIMEOUT_MS": "60000",
+				"DOC_SCRAPER_MAX_CONTENT_BYTES": "52428800",
+				"DOC_SCRAPER_MAX_CONTENT_CHARS": "50000",
+				"DOC_SCRAPER_WORKSPACE_ROOT": ""
+			}
+		},
 		"clock": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Clock/dist/mcp-server.js"],
+			"args": ["<REPO_ROOT>/Clock/dist/mcp-server.js"],
 			"env": {
 				"CLOCK_DEFAULT_TIMEZONE": "",
 				"CLOCK_DEFAULT_LOCALE": "en-US"
@@ -147,9 +169,9 @@ Update your LM Studio `mcp.json`:
 		},
 		"browserless": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Browserless/dist/mcp-server.js"],
+			"args": ["<REPO_ROOT>/Browserless/dist/mcp-server.js"],
 			"env": {
-				"BROWSERLESS_API_KEY": "your-browserless-api-token-here",
+				       "BROWSERLESS_API_KEY": "your-browserless-api-token-here",
 				"BROWSERLESS_DEFAULT_REGION": "production-sfo",
 				"BROWSERLESS_DEFAULT_TIMEOUT_MS": "30000",
 				"BROWSERLESS_MAX_TIMEOUT_MS": "120000",
@@ -160,9 +182,7 @@ Update your LM Studio `mcp.json`:
 }
 ```
 
-```
-
-**Note**: Update paths to match your installation directory.  
+**Note**: Replace `<REPO_ROOT>` with your local project path if not using `npm run mcp:print-config`.  
 Phase 2 will introduce unified orchestrator MCP server and multi-interface launchers.
 
 ## Testing & CI/CD
@@ -182,6 +202,44 @@ Automated on every push/PR:
 - TypeScript compilation + type check
 - Jest test suite + coverage threshold
 - Build verification
+- Startup readiness gate (`startup:check:strict`)
+
+Required GitHub Actions secret:
+- `BROWSERLESS_API_KEY`
+
+## Troubleshooting Readiness Checks
+
+### ✗ "missing built MCP binary"
+
+**Fix**: Rebuild and verify the artifact.
+```bash
+npm run build
+npm run verify-tools
+```
+
+### ✗ "mcp.json block is not valid JSON" or path mismatch
+
+**Fix**: Ensure paths in README MCP section match the exact `dist/mcp-server.js` artifact locations.
+```bash
+npm run verify:mcp-sync
+```
+
+### ✗ "BROWSERLESS_API_KEY is not configured" (local)
+
+**Fix**: Set the environment variable for local testing.
+```bash
+# macOS/Linux
+export BROWSERLESS_API_KEY='your-api-key-here'
+npm run startup:check
+
+# Windows PowerShell
+$env:BROWSERLESS_API_KEY='your-api-key-here'
+npm run startup:check
+```
+
+### ✗ CI build fails on "Startup readiness (strict)"
+
+**Fix**: Add GitHub Actions secret `BROWSERLESS_API_KEY` in Settings → Secrets → Actions.
 
 ## Memory System
 
