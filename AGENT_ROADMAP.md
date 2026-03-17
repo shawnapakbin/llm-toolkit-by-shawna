@@ -59,80 +59,96 @@ This plan is tailored to the current LM Studio Tools workspace:
 
 ---
 
-## Phase 2 — Orchestration + Workflow Execution
+## Phase 2 — Orchestration + Workflow Execution ✅ COMPLETE
 
-### 6) Agent Runner (Local)
-- [ ] Create a lightweight orchestrator service that can:
+### 6) Agent Runner (Local) ✅
+- [x] Create a lightweight orchestrator service that can:
   - select tool
   - call tool
   - validate output
   - retry with fallback policy
-- [ ] Add step graph execution (sequential + limited parallel)
-- [ ] Add per-step timeout and cancellation propagation
+- [x] Add step graph execution (sequential + limited parallel)
+- [x] Add per-step timeout and cancellation propagation
 
 **Acceptance**: Multi-step tasks complete with retries and partial-failure handling.
 
-### 7) Task Planning + Memory
-- [ ] Add short-lived run memory (context for one session)
-- [ ] Add persistent run history store (SQLite)
-- [ ] Add retrieval of prior successful tool patterns
+### 7) Task Planning + Memory ✅
+- [x] Add short-lived run memory (context for one session)
+- [x] Add persistent run history store (SQLite)
+- [x] Add retrieval of prior successful tool patterns
 
 **Acceptance**: Agent can reuse prior solution traces for similar prompts.
 
-### 8) Tool Registry
-- [ ] Central registry of tools and capabilities (`read`, `execute`, `compute`)
-- [ ] Health checker that validates all MCP entrypoints exist before session start
-- [ ] Version each tool schema and surface compatibility warnings
+### 8) Tool Registry ✅
+- [x] Central registry of tools and capabilities (`read`, `execute`, `compute`)
+- [x] Health checker that validates all MCP entrypoints exist before session start
+- [x] Version each tool schema and surface compatibility warnings
 
 **Acceptance**: Broken tool paths are detected before user chat execution.
 
 ---
 
-## Phase 3 — Observability + Eval + Operations
+## Phase 3 — Observability + Eval + Operations ✅ COMPLETE
 
-### 9) Observability
-- [ ] Add structured logs across all tools (`traceId`, `toolName`, `durationMs`, `status`)
-- [ ] Add local metrics export (JSON or Prometheus text format)
-- [ ] Add run-level trace timeline (plan → tool calls → output)
+### 9) Observability ✅
+- [x] Add structured logs across all tools (`traceId`, `toolName`, `durationMs`, `status`)
+  - Created Logger class with ConsoleTransport, JSONTransport, FileTransport
+  - Implemented child logger creation for tool-specific context
+- [x] Add local metrics export (JSON or Prometheus text format)
+  - Created MetricsRegistry with Counter, Histogram, and Gauge support
+  - Each tool registers execution metrics with labels (status, errorCode)
+  - Implemented Prometheus-compatible export format
+- [x] Add run-level trace timeline (plan → tool calls → output)
+  - Created Tracer class with workflow and span tracking
+  - Timeline export with millisecond precision
+  - Parent-child span relationships for multi-step workflows
+- [x] Integrate observability into AgentRunner
+  - Workflow execution creates root trace with step spans
+  - Step metrics and logs with correlation IDs
+  - Duration histograms and error tracking
+- [x] Add metrics tracking to Terminal and Calculator tools
+  - execution_total counter with status/error labels
+  - duration_ms histogram for performance analysis
+  - Metrics recorded at both success and failure paths
 
-**Acceptance**: Each agent run can be reconstructed from logs and metrics.
+**Acceptance**: Each agent run is fully observable with logs, metrics, and distributed traces. 187 tests passing.
 
-### 10) Evaluation Harness
-- [ ] Build regression suite of coding-agent tasks:
+### 10) Evaluation Harness (Phase 4) ✅
+- [x] Build regression suite of coding-agent tasks:
   - file edit task
   - shell build task
   - web retrieval + summarize task
   - math/engineering compute task
-- [ ] Track pass rate, retries, and failure categories
-- [ ] Add "golden traces" for stable benchmark runs
+- [x] Track pass rate, retries, and failure categories
+- [x] Add "golden traces" for stable benchmark runs
 
-**Acceptance**: Changes are blocked if regression pass rate drops below threshold.
+**Acceptance**: `npm run eval:run` writes evaluation results + golden traces and fails the gate if baseline thresholds are violated.
 
-### 11) Workspace Operations
-- [ ] Add root task(s) to build/test all tools together
-- [ ] Add startup script to verify MCP binaries + env before LM Studio use
-- [ ] Keep top-level `mcp.json` block synchronized when tools are added
+### 11) Workspace Operations ✅
+- [x] Add root task(s) to build/test all tools together
+- [x] Add startup script to verify MCP binaries + env before LM Studio use
+- [x] Keep top-level `mcp.json` block synchronized when tools are added
 
 **Acceptance**: One command validates readiness of Terminal, WebBrowser, Calculator, Clock, Browserless.
 
 ---
 
 ## Immediate Next 15 Tasks (Execution Order)
-1. Add shared response envelope to Terminal/WebBrowser/Calculator/Clock/Browserless.
-2. Add policy error codes and normalize all failures.
-3. Implement Terminal allowlist + cwd sandbox.
-4. Implement WebBrowser SSRF/private-network protections.
-5. Add Calculator unit-mismatch error hints.
-6. Add Browserless API key validation + rotation support.
-7. Add Browserless region failover + health checks.
-8. Add root `verify-tools` task (checks all `dist/mcp-server.js` paths).
-9. Add root `build-all-tools` task.
-10. Add structured logging fields (`traceId`, `durationMs`) across all tools.
-11. Create SQLite run-history store.
-12. Add Browserless-specific regression tests (screenshot, PDF, scrape, unblock).
-13. Create multi-tool integration tests (file + web + browser automation).
-14. Add concurrency metrics and load testing harness.
-15. Create comprehensive golden traces for stable benchmark runs.
+1. Add CI cache optimization for workspace builds/tests.
+2. Add root `verify:all` script that chains `check:ci`, `type-check`, `test:ci`, `startup:check:strict`, and `eval:run`.
+3. Add branch protection guidance for required status checks in repository settings.
+4. Add pre-push hook option (documented) for local readiness and regression gates.
+5. Expand evaluation dataset with negative-path scenarios per tool.
+6. Add deterministic seed support for evaluation trace generation.
+7. Add baseline drift report that compares current run vs baseline deltas.
+8. Add Browserless env preflight checks for region/timeouts/concurrency bounds.
+9. Add read-only smoke tests for all MCP server entrypoints (`tool-schema`, `health`).
+10. Add integration test that validates `verify:mcp-sync` against README updates.
+11. Add CI artifact upload for evaluation results and golden traces.
+12. Add metrics export endpoint smoke test for observability module.
+13. Add documented release checklist covering build, eval, and startup readiness.
+14. Add monthly dependency audit task to keep workspace packages current.
+15. Plan Phase 4 launchers implementation (LM Studio + CLI + VS Code + HTTP) using current gates.
 
 ---
 

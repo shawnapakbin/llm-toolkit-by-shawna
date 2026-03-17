@@ -20,7 +20,8 @@
     "noImplicitReturns": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["*"],
+      "@shared/*": ["shared/*"]
     }
   },
   "include": ["Terminal/src/**/*", "WebBrowser/src/**/*", "Calculator/src/**/*", "Clock/src/**/*", "Browserless/src/**/*", "Memory/src/**/*", "testing/**/*"],

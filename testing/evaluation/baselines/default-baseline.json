@@ -1,0 +1,10 @@
+{
+  "passRateThreshold": 0.95,
+  "maxAverageRetries": 0.5,
+  "maxFailureRateByCategory": {
+    "file-edit": 0.1,
+    "shell-build": 0.1,
+    "web-retrieval": 0.1,
+    "math-engineering": 0.1
+  }
+}

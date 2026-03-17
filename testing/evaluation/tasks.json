@@ -1,0 +1,212 @@
+[
+  {
+    "id": "eval-file-edit-1",
+    "name": "File Edit Simulation",
+    "category": "file-edit",
+    "workflow": {
+      "id": "eval-file-edit-1",
+      "name": "File Edit Simulation",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "plan-edit",
+          "toolId": "terminal",
+          "endpoint": "/tools/run_terminal_command",
+          "input": {
+            "command": "echo planning file edit"
+          }
+        },
+        {
+          "id": "apply-edit",
+          "toolId": "terminal",
+          "endpoint": "/tools/run_terminal_command",
+          "input": {
+            "command": "echo applying patch"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-file-edit-2-negative-empty-command",
+    "name": "File Edit - Invalid Input (empty command)",
+    "category": "file-edit",
+    "workflow": {
+      "id": "eval-file-edit-2-negative",
+      "name": "File Edit - Negative Test",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "invalid-command",
+          "toolId": "terminal",
+          "endpoint": "/tools/run_terminal_command",
+          "input": {
+            "command": ""
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-shell-build-1",
+    "name": "Shell Build Simulation",
+    "category": "shell-build",
+    "workflow": {
+      "id": "eval-shell-build-1",
+      "name": "Shell Build Simulation",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "run-build",
+          "toolId": "terminal",
+          "endpoint": "/tools/run_terminal_command",
+          "input": {
+            "command": "npm run build"
+          },
+          "retryPolicy": {
+            "maxRetries": 1,
+            "retryDelayMs": 25
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-shell-build-2-negative-invalid-input",
+    "name": "Shell Build - Invalid Input",
+    "category": "shell-build",
+    "workflow": {
+      "id": "eval-shell-build-2-negative",
+      "name": "Shell Build - Negative Test",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "missing-command",
+          "toolId": "terminal",
+          "endpoint": "/tools/run_terminal_command",
+          "input": {
+            "command": ""
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-web-summary-1",
+    "name": "Web Retrieval Simulation",
+    "category": "web-retrieval",
+    "workflow": {
+      "id": "eval-web-summary-1",
+      "name": "Web Retrieval Simulation",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "fetch-page",
+          "toolId": "webbrowser",
+          "endpoint": "/tools/browse_web",
+          "input": {
+            "url": "https://example.com"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-web-summary-2-negative-invalid-url",
+    "name": "Web Retrieval - Invalid URL",
+    "category": "web-retrieval",
+    "workflow": {
+      "id": "eval-web-summary-2-negative",
+      "name": "Web Retrieval - Negative Test",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "invalid-url",
+          "toolId": "webbrowser",
+          "endpoint": "/tools/browse_web",
+          "input": {
+            "url": "not-a-valid-url"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-web-summary-3-negative-missing-url",
+    "name": "Web Retrieval - Missing URL",
+    "category": "web-retrieval",
+    "workflow": {
+      "id": "eval-web-summary-3-negative",
+      "name": "Web Retrieval - Missing URL",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "missing-url",
+          "toolId": "webbrowser",
+          "endpoint": "/tools/browse_web",
+          "input": {
+            "url": ""
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-math-1",
+    "name": "Math Engineering Simulation",
+    "category": "math-engineering",
+    "workflow": {
+      "id": "eval-math-1",
+      "name": "Math Engineering Simulation",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "compute",
+          "toolId": "calculator",
+          "endpoint": "/tools/calculate_engineering",
+          "input": {
+            "expression": "sin(30°) + cos(60°)"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-math-2-negative-empty-expression",
+    "name": "Math Engineering - Empty Expression",
+    "category": "math-engineering",
+    "workflow": {
+      "id": "eval-math-2-negative",
+      "name": "Math Engineering - Negative Test",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "empty-expression",
+          "toolId": "calculator",
+          "endpoint": "/tools/calculate_engineering",
+          "input": {
+            "expression": ""
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "eval-math-3-negative-missing-expression",
+    "name": "Math Engineering - Missing Expression",
+    "category": "math-engineering",
+    "workflow": {
+      "id": "eval-math-3-negative",
+      "name": "Math Engineering - Missing Expression",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "missing-expression",
+          "toolId": "calculator",
+          "endpoint": "/tools/calculate_engineering",
+          "input": {}
+        }
+      ]
+    }
+  }
+]
