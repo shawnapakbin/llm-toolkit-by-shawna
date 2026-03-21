@@ -20,9 +20,9 @@ Owner: `core-maintainers`
 - Scope: visible terminal window execution and terminal session reuse.
 - Key paths: `Terminal/src/punchout.ts`, `Terminal/src/index.ts`, `Terminal/src/mcp-server.ts`, `Terminal/tests/http.test.ts`.
 
-4. Shared package normalization
-- Scope: standardize shared package identity and imports.
-- Key paths: `shared/package.json`, `shared/types.ts`.
+4. Shared package and tool call normalization
+- Scope: standardize shared package identity, imports, and canonical tool call schema for all tools and workflows.
+- Key paths: `shared/package.json`, `shared/types.ts`, `shared/toolCallNormalizer.ts`, normalization logic in MCP server and workflow runner.
 
 5. MCP config and sync enhancements
 - Scope: centralized MCP server config generation and LM Studio bridge sync.

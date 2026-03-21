@@ -2,8 +2,10 @@
 
 Enterprise-grade orchestration and workflow execution for LLM Toolkit.
 
+
 ## Features
 
+- **Tool Call Normalization**: All tool calls dispatched by the runner are normalized to a canonical schema before execution, ensuring compatibility with legacy and new formats and reducing integration errors.
 - **Tool Registry**: Central registry of all available tools with health checking
 - **Workflow Execution**: Sequential and parallel execution modes with dependency management
 - **Retry & Fallback**: Configurable retry policies with exponential backoff
@@ -100,7 +102,11 @@ registry.startHealthCheckMonitor(60000); // Check every 60s
 registry.stopHealthCheckMonitor();
 ```
 
+
 ## Workflow Execution
+
+### Tool Call Normalization
+Before dispatching any tool call, the runner normalizes the input to a canonical format using the shared normalization utility (`shared/toolCallNormalizer.ts`). This guarantees that all tool invocations—regardless of their source—are schema-consistent and robust to legacy/variant formats.
 
 ### Clarification-First Planning (AskUser)
 

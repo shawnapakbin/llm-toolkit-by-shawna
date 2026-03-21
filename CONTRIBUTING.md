@@ -24,8 +24,10 @@ npm test
 - Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design
 - Read [docs/CODE-QUALITY.md](docs/CODE-QUALITY.md) for standards
 
+
 #### 2. Write Code
 - Follow the [Tool Contract Pattern](docs/ARCHITECTURE.md#1-tool-contract-pattern)
+- **Enforce tool call normalization**: All new tool or workflow entry points must use the shared normalization utility (`shared/toolCallNormalizer.ts`) to ensure canonical tool call schema and compatibility across the system.
 - Use standardized response envelope (see `testing/responses.ts`)
 - Add error handling with proper error codes
 - Include JSDoc comments on all exports

@@ -1,9 +1,11 @@
-# LM Studio Tools
 
-This workspace contains local tools for LM Studio.
+# LLM Toolkit by Shawna
+
+**Enhanced Feature: Unified Tool Call Normalization**
+
+All tool calls—whether originating from HTTP, MCP, or internal workflows—are automatically normalized to a canonical schema before execution. This ensures seamless compatibility across legacy and new tool call formats, reduces integration bugs, and enables robust multi-model orchestration. The normalization logic is shared and enforced in both the MCP server and workflow runner. See `shared/toolCallNormalizer.ts` for implementation details.
 
 See implementation roadmap: [AGENT_ROADMAP.md](AGENT_ROADMAP.md)
-# LLM Toolkit by Shawna
 
 **Version**: 2.0.0-alpha.1  
 **Status**: Phase 0 (Foundation) ✅ Complete
@@ -32,7 +34,12 @@ npm test:ci          # Jest tests (80%+ coverage)
 npm run startup:check # Workspace readiness (MCP binaries + config sync)
 ```
 
+
 ## Architecture
+
+### Tool Call Normalization Layer
+
+All tool calls are normalized to a canonical format before dispatch, regardless of their origin. This guarantees that every tool invocation—whether from HTTP, MCP, or workflow runner—follows the same schema, improving reliability and extensibility. See `shared/toolCallNormalizer.ts`.
 
 ### 8 Core Tools (v1 → v2 compatibility maintained)
 
@@ -314,10 +321,12 @@ See [Memory/README.md](Memory/README.md) for details.
 | [CONTRIBUTING.md](CONTRIBUTING.md) | PR workflow + code review checklist |
 | [Memory/README.md](Memory/README.md) | Memory persistence API |
 
+
 ## Features & Status
 
 | Feature | Status | Notes |
 |---------|--------|-------|
+| Tool call normalization | ✅ | Canonicalizes all tool calls before execution |
 | 8 core tools | ✅ | Terminal, WebBrowser, Calculator, DocumentScraper, Clock, Browserless, AskUser, RAG |
 | Biome format + lint | ✅ | CI gate, auto-fix on save |
 | Jest test suite | ✅ | 80% coverage minimum |
@@ -328,7 +337,11 @@ See [Memory/README.md](Memory/README.md) for details.
 | Agent orchestrator (Phase 3) | 🔄 | Multi-step task planning + pattern replay |
 | Multi-interface launchers (Phase 4) | 🔄 | LM Studio + CLI + VS Code + HTTP |
 
+
 ## Contributing
+
+### Tool Call Normalization
+All contributors must ensure that any new tool or workflow entry point uses the shared normalization utility for tool calls. This is critical for maintaining compatibility and reliability across the system.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Development setup
