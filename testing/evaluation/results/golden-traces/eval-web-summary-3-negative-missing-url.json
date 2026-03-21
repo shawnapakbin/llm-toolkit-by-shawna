@@ -1,0 +1,19 @@
+{
+  "traceId": "1774060606315-o0u1dis4",
+  "workflowId": "eval-web-summary-3-negative",
+  "workflowName": "Web Retrieval - Missing URL",
+  "status": "error",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "missing-url",
+      "toolId": "webbrowser",
+      "success": false,
+      "retries": 0,
+      "durationMs": 0,
+      "errorCode": "INVALID_INPUT",
+      "errorMessage": "invalid url"
+    }
+  ],
+  "generatedAt": "2026-03-21T02:36:46.315Z"
+}

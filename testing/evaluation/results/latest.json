@@ -1,0 +1,191 @@
+{
+  "summary": {
+    "runAt": "2026-03-21T02:36:46.316Z",
+    "totalTasks": 10,
+    "passedTasks": 10,
+    "failedTasks": 0,
+    "passRate": 1,
+    "averageRetries": 0,
+    "failureCategories": {},
+    "categoryStats": {
+      "file-edit": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "failureRate": 0
+      },
+      "shell-build": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "failureRate": 0
+      },
+      "web-retrieval": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "failureRate": 0
+      },
+      "math-engineering": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "failureRate": 0
+      }
+    }
+  },
+  "tasks": [
+    {
+      "expectedSuccess": true,
+      "matchedExpectation": true,
+      "id": "eval-file-edit-1",
+      "name": "File Edit Simulation",
+      "category": "file-edit",
+      "success": true,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606311-s2nkrb4z"
+    },
+    {
+      "expectedSuccess": false,
+      "matchedExpectation": true,
+      "id": "eval-file-edit-2-negative-empty-command",
+      "name": "File Edit - Invalid Input (empty command)",
+      "category": "file-edit",
+      "success": false,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606311-lef2b356",
+      "error": "Workflow failed: 1 step(s)"
+    },
+    {
+      "expectedSuccess": true,
+      "matchedExpectation": true,
+      "id": "eval-shell-build-1",
+      "name": "Shell Build Simulation",
+      "category": "shell-build",
+      "success": true,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606312-mre2ix49"
+    },
+    {
+      "expectedSuccess": false,
+      "matchedExpectation": true,
+      "id": "eval-shell-build-2-negative-invalid-input",
+      "name": "Shell Build - Invalid Input",
+      "category": "shell-build",
+      "success": false,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606313-erutaio9",
+      "error": "Workflow failed: 1 step(s)"
+    },
+    {
+      "expectedSuccess": true,
+      "matchedExpectation": true,
+      "id": "eval-web-summary-1",
+      "name": "Web Retrieval Simulation",
+      "category": "web-retrieval",
+      "success": true,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606314-4d86zqjv"
+    },
+    {
+      "expectedSuccess": false,
+      "matchedExpectation": true,
+      "id": "eval-web-summary-2-negative-invalid-url",
+      "name": "Web Retrieval - Invalid URL",
+      "category": "web-retrieval",
+      "success": false,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606314-nsf0817v",
+      "error": "Workflow failed: 1 step(s)"
+    },
+    {
+      "expectedSuccess": false,
+      "matchedExpectation": true,
+      "id": "eval-web-summary-3-negative-missing-url",
+      "name": "Web Retrieval - Missing URL",
+      "category": "web-retrieval",
+      "success": false,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606315-o0u1dis4",
+      "error": "Workflow failed: 1 step(s)"
+    },
+    {
+      "expectedSuccess": true,
+      "matchedExpectation": true,
+      "id": "eval-math-1",
+      "name": "Math Engineering Simulation",
+      "category": "math-engineering",
+      "success": true,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606315-w4et51ru"
+    },
+    {
+      "expectedSuccess": false,
+      "matchedExpectation": true,
+      "id": "eval-math-2-negative-empty-expression",
+      "name": "Math Engineering - Empty Expression",
+      "category": "math-engineering",
+      "success": false,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606316-m7qcyfev",
+      "error": "Workflow failed: 1 step(s)"
+    },
+    {
+      "expectedSuccess": false,
+      "matchedExpectation": true,
+      "id": "eval-math-3-negative-missing-expression",
+      "name": "Math Engineering - Missing Expression",
+      "category": "math-engineering",
+      "success": false,
+      "durationMs": 0,
+      "retries": 0,
+      "traceId": "1774060606316-l301u6wx",
+      "error": "Workflow failed: 1 step(s)"
+    }
+  ],
+  "traces": {
+    "eval-file-edit-1": {
+      "traceId": "1774060606311-s2nkrb4z"
+    },
+    "eval-file-edit-2-negative-empty-command": {
+      "traceId": "1774060606311-lef2b356"
+    },
+    "eval-shell-build-1": {
+      "traceId": "1774060606312-mre2ix49"
+    },
+    "eval-shell-build-2-negative-invalid-input": {
+      "traceId": "1774060606313-erutaio9"
+    },
+    "eval-web-summary-1": {
+      "traceId": "1774060606314-4d86zqjv"
+    },
+    "eval-web-summary-2-negative-invalid-url": {
+      "traceId": "1774060606314-nsf0817v"
+    },
+    "eval-web-summary-3-negative-missing-url": {
+      "traceId": "1774060606315-o0u1dis4"
+    },
+    "eval-math-1": {
+      "traceId": "1774060606315-w4et51ru"
+    },
+    "eval-math-2-negative-empty-expression": {
+      "traceId": "1774060606316-m7qcyfev"
+    },
+    "eval-math-3-negative-missing-expression": {
+      "traceId": "1774060606316-l301u6wx"
+    }
+  },
+  "gate": {
+    "passed": true,
+    "reasons": []
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "traceId": "1774060606311-s2nkrb4z",
+  "workflowId": "eval-file-edit-1",
+  "workflowName": "File Edit Simulation",
+  "status": "success",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "plan-edit",
+      "toolId": "terminal",
+      "success": true,
+      "retries": 0,
+      "durationMs": 0
+    },
+    {
+      "id": "apply-edit",
+      "toolId": "terminal",
+      "success": true,
+      "retries": 0,
+      "durationMs": 0
+    }
+  ],
+  "generatedAt": "2026-03-21T02:36:46.311Z"
+}

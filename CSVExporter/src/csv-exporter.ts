@@ -1,5 +1,5 @@
-import fs from "fs/promises";
 import path from "path";
+import fs from "fs/promises";
 import { resolveCsvOutputPath } from "./policy";
 
 export type ExportCsvInput = {
@@ -25,11 +25,12 @@ function escapeCsvValue(value: unknown): string {
     return "";
   }
 
-  const text = typeof value === "string"
-    ? value
-    : typeof value === "number" || typeof value === "boolean"
-      ? String(value)
-      : JSON.stringify(value);
+  const text =
+    typeof value === "string"
+      ? value
+      : typeof value === "number" || typeof value === "boolean"
+        ? String(value)
+        : JSON.stringify(value);
 
   const needsQuotes = /[",\n\r]/.test(text);
   const escaped = text.replace(/"/g, '""');
@@ -40,7 +41,10 @@ function toCsvLine(values: unknown[]): string {
   return values.map((value) => escapeCsvValue(value)).join(",");
 }
 
-function validateTable(headers: string[], rows: unknown[][]): { valid: true } | { valid: false; error: string } {
+function validateTable(
+  headers: string[],
+  rows: unknown[][],
+): { valid: true } | { valid: false; error: string } {
   if (!Array.isArray(headers) || headers.length === 0) {
     return { valid: false, error: "headers must contain at least one column." };
   }
@@ -60,7 +64,10 @@ function validateTable(headers: string[], rows: unknown[][]): { valid: true } | 
     }
 
     if (rows[i].length !== headers.length) {
-      return { valid: false, error: `row ${i} has ${rows[i].length} columns; expected ${headers.length}.` };
+      return {
+        valid: false,
+        error: `row ${i} has ${rows[i].length} columns; expected ${headers.length}.`,
+      };
     }
   }
 
@@ -101,9 +108,10 @@ export async function exportParsedDataToCsv(input: ExportCsvInput): Promise<Expo
 
     if (append && fileExists) {
       const prefix = fileSize > 0 ? "\r\n" : "";
-      const contentToAppend = fileSize > 0
-        ? `${prefix}${writeBody}`
-        : `${headerLine}${writeBody ? `\r\n${writeBody}` : ""}`;
+      const contentToAppend =
+        fileSize > 0
+          ? `${prefix}${writeBody}`
+          : `${headerLine}${writeBody ? `\r\n${writeBody}` : ""}`;
 
       if (contentToAppend.length > 0) {
         await fs.appendFile(outputPath, contentToAppend, "utf8");
@@ -130,10 +138,10 @@ export async function exportParsedDataToCsv(input: ExportCsvInput): Promise<Expo
       appended: false,
       createdNewFile: !fileExists,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: `CSV export failed: ${error?.message || "unknown error"}`,
+      error: `CSV export failed: ${error instanceof Error ? error.message : "unknown error"}`,
     };
   }
 }

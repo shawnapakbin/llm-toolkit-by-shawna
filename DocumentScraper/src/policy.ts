@@ -43,7 +43,7 @@ export function isBlockedHostname(hostname: string): boolean {
 }
 
 export function validateTargetUrl(
-  urlValue: string
+  urlValue: string,
 ): { ok: true } | { ok: false; message: string; errorCode: string } {
   try {
     const parsed = new URL(urlValue);
@@ -58,8 +58,7 @@ export function validateTargetUrl(
     if (isBlockedHostname(parsed.hostname)) {
       return {
         ok: false,
-        message:
-          "Blocked by SSRF policy: private, loopback, or link-local hosts are not allowed.",
+        message: "Blocked by SSRF policy: private, loopback, or link-local hosts are not allowed.",
         errorCode: "POLICY_BLOCKED",
       };
     }
@@ -83,14 +82,22 @@ export function getWorkspaceRoot(): string {
   return path.resolve(process.env.DOC_SCRAPER_WORKSPACE_ROOT || process.cwd());
 }
 
-export function validatePath(filePath: string, workspaceRoot: string): { valid: boolean; error?: string } {
+export function validatePath(
+  filePath: string,
+  workspaceRoot: string,
+): { valid: boolean; error?: string } {
   const normalized = path.normalize(filePath);
   const root = path.resolve(workspaceRoot);
   const absolutePath = path.resolve(root, normalized);
   const normalizedRoot = root.toLowerCase();
   const normalizedAbsolute = absolutePath.toLowerCase();
 
-  if (!(normalizedAbsolute === normalizedRoot || normalizedAbsolute.startsWith(`${normalizedRoot}${path.sep}`))) {
+  if (
+    !(
+      normalizedAbsolute === normalizedRoot ||
+      normalizedAbsolute.startsWith(`${normalizedRoot}${path.sep}`)
+    )
+  ) {
     return {
       valid: false,
       error: `Path traversal detected: ${filePath} escapes workspace boundary`,

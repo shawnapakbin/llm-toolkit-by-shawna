@@ -178,7 +178,7 @@ Add this configuration to your LM Studio `mcp.json`:
   "mcpServers": {
     "web-browser": {
       "command": "node",
-      "args": ["<REPO_ROOT>/WebBrowser/dist/mcp-server.js"],
+      "args": ["WebBrowser/dist/mcp-server.js"],
       "env": {
         "BROWSER_DEFAULT_TIMEOUT_MS": "20000",
         "BROWSER_MAX_TIMEOUT_MS": "60000",
@@ -331,4 +331,5 @@ npm test             # Run tests (if available)
 
 ## License
 
-MIT
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties). See ../LICENSE.
+Original Author: Shawna Pakbin

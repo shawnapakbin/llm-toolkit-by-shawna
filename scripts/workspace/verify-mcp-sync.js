@@ -13,6 +13,8 @@ const expectedServers = {
   "document-scraper": "DocumentScraper/dist/mcp-server.js",
   clock: "Clock/dist/mcp-server.js",
   browserless: "Browserless/dist/mcp-server.js",
+  "ask-user": "AskUser/dist/mcp-server.js",
+  rag: "RAG/dist/mcp-server.js",
 };
 
 const marker = "## Complete `mcp.json` Example";
@@ -42,7 +44,7 @@ if (!jsonBlock) {
 let parsed;
 try {
   parsed = JSON.parse(jsonBlock);
-} catch (error) {
+} catch {
   console.error("✗ README mcp.json block is not valid JSON.");
   process.exit(1);
 }
@@ -64,7 +66,9 @@ for (const [serverKey, expectedPath] of Object.entries(expectedServers)) {
   }
 
   const args = Array.isArray(server.args) ? server.args : [];
-  const hasExpectedPath = args.some((arg) => String(arg).replace(/\\\\/g, "/").endsWith(expectedPath));
+  const hasExpectedPath = args.some((arg) =>
+    String(arg).replace(/\\\\/g, "/").endsWith(expectedPath),
+  );
 
   if (!hasExpectedPath) {
     console.error(`✗ Server '${serverKey}' args do not include '${expectedPath}'.`);

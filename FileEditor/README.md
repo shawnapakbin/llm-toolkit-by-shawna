@@ -24,7 +24,7 @@ Safe file system operations for LLM software engineer agents.
 
 ```bash
 # Optional: Set workspace root (defaults to current directory)
-export FILE_EDITOR_WORKSPACE_ROOT=/path/to/workspace
+export FILE_EDITOR_WORKSPACE_ROOT="$(pwd)"
 
 # Optional: HTTP server port (defaults to 3010)
 export PORT=3010
@@ -63,9 +63,9 @@ Add to LM Studio `mcp.json`:
   "mcpServers": {
     "file-editor": {
       "command": "node",
-      "args": ["/path/to/FileEditor/dist/mcp-server.js"],
+      "args": ["FileEditor/dist/mcp-server.js"],
       "env": {
-        "FILE_EDITOR_WORKSPACE_ROOT": "/path/to/your/workspace"
+        "FILE_EDITOR_WORKSPACE_ROOT": "."
       }
     }
   }
@@ -206,4 +206,5 @@ All operations return standardized error responses:
 
 ## License
 
-MIT
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties). See ../LICENSE.
+Original Author: Shawna Pakbin

@@ -1,5 +1,5 @@
-import fs from "fs/promises";
 import path from "path";
+import fs from "fs/promises";
 import mammoth from "mammoth";
 import {
   MAX_REDIRECTS,
@@ -107,7 +107,10 @@ function splitSentences(text: string): string[] {
 }
 
 function inferSectionsFromText(text: string): Section[] {
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
   const sections: Section[] = [];
   let currentHeading = "Overview";
   let currentLevel = 1;
@@ -123,7 +126,7 @@ function inferSectionsFromText(text: string): Section[] {
         });
       }
       currentHeading = line.replace(/^#{1,6}\s+/, "").trim();
-      currentLevel = (line.match(/^#+/)?.[0].length ?? 1);
+      currentLevel = line.match(/^#+/)?.[0].length ?? 1;
       buffer = [];
       continue;
     }
@@ -156,7 +159,11 @@ function inferSectionsFromText(text: string): Section[] {
   return sections.slice(0, 20);
 }
 
-function buildDescription(title: string, sections: Section[], content: string): DocumentDescription {
+function buildDescription(
+  title: string,
+  sections: Section[],
+  content: string,
+): DocumentDescription {
   const sentences = splitSentences(content).slice(0, 80);
   const headingTokens = sections
     .flatMap((s) => s.heading.toLowerCase().split(/\W+/))
@@ -200,7 +207,10 @@ function buildDescription(title: string, sections: Section[], content: string): 
 
   const prefix = title ? `${title}. ` : "";
   const text = `${prefix}${deduped.join(" ")}`.trim().slice(0, 1200);
-  const qualityScore = Math.min(1, Math.max(0.55, deduped.length / 5 + (sections.length > 0 ? 0.2 : 0)));
+  const qualityScore = Math.min(
+    1,
+    Math.max(0.55, deduped.length / 5 + (sections.length > 0 ? 0.2 : 0)),
+  );
 
   return {
     text,
@@ -243,7 +253,9 @@ function parseDelimited(text: string, delimiter: string): string {
   const rows = lines.slice(0, 50).map((line) => line.split(delimiter).map((c) => c.trim()));
   const headers = rows[0];
   const body = rows.slice(1, 6);
-  const preview = body.map((row) => headers.map((h, i) => `${h}: ${row[i] ?? ""}`).join(", ")).join("\n");
+  const preview = body
+    .map((row) => headers.map((h, i) => `${h}: ${row[i] ?? ""}`).join(", "))
+    .join("\n");
   return `${headers.join(", ")}\n${preview}`.trim();
 }
 
@@ -286,7 +298,12 @@ function isPdfEncrypted(buffer: Buffer): boolean {
   return /\/Encrypt\b/.test(sample);
 }
 
-async function fetchRemoteContent(input: ReadDocumentInput): Promise<{ buffer: Buffer; contentType: string | null; finalUrl: string } | { error: string; errorCode: string }> {
+async function fetchRemoteContent(
+  input: ReadDocumentInput,
+): Promise<
+  | { buffer: Buffer; contentType: string | null; finalUrl: string }
+  | { error: string; errorCode: string }
+> {
   const validation = validateTargetUrl(input.url || "");
   if (!validation.ok) {
     return { error: validation.message, errorCode: validation.errorCode };
@@ -376,7 +393,12 @@ async function fetchRemoteContent(input: ReadDocumentInput): Promise<{ buffer: B
   }
 }
 
-async function readLocalContent(input: ReadDocumentInput): Promise<{ buffer: Buffer; contentType: string | null; finalPath: string } | { error: string; errorCode: string }> {
+async function readLocalContent(
+  input: ReadDocumentInput,
+): Promise<
+  | { buffer: Buffer; contentType: string | null; finalPath: string }
+  | { error: string; errorCode: string }
+> {
   const workspaceRoot = getWorkspaceRoot();
   const sourcePath = input.filePath || "";
 
@@ -413,7 +435,12 @@ async function readLocalContent(input: ReadDocumentInput): Promise<{ buffer: Buf
   }
 }
 
-async function parseByFormat(format: string, buffer: Buffer, htmlUrlOrPath: string, input: ReadDocumentInput): Promise<{
+async function parseByFormat(
+  format: string,
+  buffer: Buffer,
+  htmlUrlOrPath: string,
+  input: ReadDocumentInput,
+): Promise<{
   title: string;
   content: string;
   sections: Section[];
@@ -436,17 +463,21 @@ async function parseByFormat(format: string, buffer: Buffer, htmlUrlOrPath: stri
         isEncrypted: true,
         encryptionType: "password-protected",
         encryptionStatusCode: "PDF_ENCRYPTED",
-        encryptionUserMessage: "This PDF appears encrypted. Provide a password in premium mode to read it.",
+        encryptionUserMessage:
+          "This PDF appears encrypted. Provide a password in premium mode to read it.",
         error: "Encrypted PDF detected",
         errorCode: "POLICY_BLOCKED",
       };
     }
 
     try {
-      const pdfParse = require("pdf-parse") as (buffer: Buffer, options?: any) => Promise<{ text: string; info?: { Title?: string } }>;
+      const pdfParse = require("pdf-parse") as (
+        buffer: Buffer,
+        options?: Record<string, unknown>,
+      ) => Promise<{ text: string; info?: { Title?: string } }>;
       const parsed = await pdfParse(
         buffer,
-        premiumMode && input.pdfPassword ? { password: input.pdfPassword } : undefined
+        premiumMode && input.pdfPassword ? { password: input.pdfPassword } : undefined,
       );
       const content = parsed.text?.replace(/\s+/g, " ").trim() ?? "";
       const sections = inferSectionsFromText(content);
@@ -572,9 +603,7 @@ export async function readDocument(input: ReadDocumentInput): Promise<DocumentRe
   const source = input.url ? "remote" : "local";
   const sourceRef = input.url || input.filePath || "";
 
-  const contentResult = input.url
-    ? await fetchRemoteContent(input)
-    : await readLocalContent(input);
+  const contentResult = input.url ? await fetchRemoteContent(input) : await readLocalContent(input);
 
   if ("error" in contentResult) {
     return {

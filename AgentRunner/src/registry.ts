@@ -1,6 +1,6 @@
 /**
  * Tool Registry - Central registry of available tools and their capabilities
- * 
+ *
  * Provides tool discovery, health checking, and metadata management.
  */
 
@@ -65,7 +65,7 @@ export interface ToolSchema {
   description: string;
   parameters: {
     type: string;
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     required: string[];
   };
 }
@@ -102,16 +102,14 @@ export class ToolRegistry {
    * Get tools by capability
    */
   getToolsByCapability(capability: ToolCapability): ToolMetadata[] {
-    return this.getAllTools().filter(tool =>
-      tool.capabilities.includes(capability)
-    );
+    return this.getAllTools().filter((tool) => tool.capabilities.includes(capability));
   }
 
   /**
    * Get healthy tools only
    */
   getHealthyTools(): ToolMetadata[] {
-    return this.getAllTools().filter(tool => tool.status === ToolStatus.HEALTHY);
+    return this.getAllTools().filter((tool) => tool.status === ToolStatus.HEALTHY);
   }
 
   /**
@@ -150,7 +148,7 @@ export class ToolRegistry {
         };
       }
 
-      const data = await response.json() as { ok?: boolean; status?: string };
+      const data = (await response.json()) as { ok?: boolean; status?: string };
       const isHealthy = data.ok === true || data.status === "ok";
 
       return {
@@ -216,8 +214,8 @@ export class ToolRegistry {
         return null;
       }
 
-      return await response.json() as ToolSchema | null;
-    } catch (error) {
+      return (await response.json()) as ToolSchema | null;
+    } catch {
       return null;
     }
   }
@@ -225,7 +223,7 @@ export class ToolRegistry {
   /**
    * Start periodic health checks
    */
-  startHealthCheckMonitor(intervalMs: number = 60000): void {
+  startHealthCheckMonitor(intervalMs = 60000): void {
     if (this.healthCheckInterval) {
       this.stopHealthCheckMonitor();
     }
@@ -258,9 +256,9 @@ export class ToolRegistry {
     const allTools = this.getAllTools();
     const stats = {
       totalTools: allTools.length,
-      healthyTools: allTools.filter(t => t.status === ToolStatus.HEALTHY).length,
-      unhealthyTools: allTools.filter(t => t.status === ToolStatus.UNHEALTHY).length,
-      unknownTools: allTools.filter(t => t.status === ToolStatus.UNKNOWN).length,
+      healthyTools: allTools.filter((t) => t.status === ToolStatus.HEALTHY).length,
+      unhealthyTools: allTools.filter((t) => t.status === ToolStatus.UNHEALTHY).length,
+      unknownTools: allTools.filter((t) => t.status === ToolStatus.UNKNOWN).length,
       toolsByCapability: {
         [ToolCapability.READ]: 0,
         [ToolCapability.EXECUTE]: 0,
@@ -269,8 +267,8 @@ export class ToolRegistry {
       },
     };
 
-    allTools.forEach(tool => {
-      tool.capabilities.forEach(cap => {
+    allTools.forEach((tool) => {
+      tool.capabilities.forEach((cap) => {
         stats.toolsByCapability[cap]++;
       });
     });
@@ -365,6 +363,32 @@ export function registerDefaultTools(registry: ToolRegistry = defaultRegistry): 
     httpEndpoint: `http://localhost:3003`,
     healthEndpoint: `http://localhost:3003/health`,
     schemaEndpoint: `http://localhost:3003/health`, // Uses health endpoint
+    status: ToolStatus.UNKNOWN,
+  });
+
+  // AskUser Tool
+  registry.register({
+    id: "ask-user",
+    name: "AskUser",
+    description: "Interactive user interview workflow for planning and clarification",
+    version: "1.0.0",
+    capabilities: [ToolCapability.READ, ToolCapability.EXECUTE],
+    httpEndpoint: `http://localhost:${basePort + 8}`,
+    healthEndpoint: `http://localhost:${basePort + 8}/health`,
+    schemaEndpoint: `http://localhost:${basePort + 8}/tool-schema`,
+    status: ToolStatus.UNKNOWN,
+  });
+
+  // RAG Tool
+  registry.register({
+    id: "rag",
+    name: "RAG",
+    description: "Persistent knowledge ingestion and retrieval with approval-gated writes",
+    version: "1.0.0",
+    capabilities: [ToolCapability.READ, ToolCapability.WRITE, ToolCapability.EXECUTE],
+    httpEndpoint: `http://localhost:${basePort + 9}`,
+    healthEndpoint: `http://localhost:${basePort + 9}/health`,
+    schemaEndpoint: `http://localhost:${basePort + 9}/tool-schema`,
     status: ToolStatus.UNKNOWN,
   });
 }

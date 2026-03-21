@@ -1,6 +1,6 @@
 /**
  * Metrics Collection for LLM Toolkit
- * 
+ *
  * Provides counters, histograms, and gauges with Prometheus-compatible export.
  */
 
@@ -35,17 +35,17 @@ export class Counter implements Metric {
   readonly type = MetricType.COUNTER;
   private value = 0;
   private labeledCounters = new Map<string, number>();
-  
+
   constructor(
     public readonly name: string,
     public readonly help: string,
-    public readonly labels?: Labels
+    public readonly labels?: Labels,
   ) {}
-  
+
   /**
    * Increment counter
    */
-  inc(labels?: Labels, value: number = 1): void {
+  inc(labels?: Labels, value = 1): void {
     if (labels) {
       const key = this.serializeLabels(labels);
       const current = this.labeledCounters.get(key) || 0;
@@ -54,7 +54,7 @@ export class Counter implements Metric {
       this.value += value;
     }
   }
-  
+
   /**
    * Get counter value
    */
@@ -65,7 +65,7 @@ export class Counter implements Metric {
     }
     return this.value;
   }
-  
+
   /**
    * Get all labeled values
    */
@@ -77,18 +77,18 @@ export class Counter implements Metric {
     }
     return result;
   }
-  
+
   private serializeLabels(labels: Labels): string {
     return Object.entries(labels)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([k, v]) => `${k}="${v}"`)
       .join(",");
   }
-  
+
   private deserializeLabels(key: string): Labels {
     const labels: Labels = {};
     if (!key) return labels;
-    
+
     const pairs = key.split(",");
     for (const pair of pairs) {
       const [k, v] = pair.split("=");
@@ -107,25 +107,25 @@ export class Histogram implements Metric {
   private counts: number[];
   private sum = 0;
   private count = 0;
-  
+
   constructor(
     public readonly name: string,
     public readonly help: string,
     buckets?: number[],
-    public readonly labels?: Labels
+    public readonly labels?: Labels,
   ) {
     // Default buckets for latency: 10ms, 50ms, 100ms, 500ms, 1s, 5s, 10s
     this.buckets = buckets || [10, 50, 100, 500, 1000, 5000, 10000];
     this.counts = new Array(this.buckets.length + 1).fill(0);
   }
-  
+
   /**
    * Observe a value
    */
   observe(value: number): void {
     this.sum += value;
     this.count++;
-    
+
     for (let i = 0; i < this.buckets.length; i++) {
       if (value <= this.buckets[i]) {
         this.counts[i]++;
@@ -134,7 +134,7 @@ export class Histogram implements Metric {
     // +Inf bucket
     this.counts[this.counts.length - 1]++;
   }
-  
+
   /**
    * Get histogram statistics
    */
@@ -144,12 +144,14 @@ export class Histogram implements Metric {
     avg: number;
     buckets: Array<{ le: number | string; count: number }>;
   } {
-    const bucketStats: Array<{ le: number | string; count: number }> = this.buckets.map((le, i) => ({
-      le,
-      count: this.counts[i],
-    }));
+    const bucketStats: Array<{ le: number | string; count: number }> = this.buckets.map(
+      (le, i) => ({
+        le,
+        count: this.counts[i],
+      }),
+    );
     bucketStats.push({ le: "+Inf", count: this.counts[this.counts.length - 1] });
-    
+
     return {
       count: this.count,
       sum: this.sum,
@@ -166,13 +168,13 @@ export class Gauge implements Metric {
   readonly type = MetricType.GAUGE;
   private value = 0;
   private labeledGauges = new Map<string, number>();
-  
+
   constructor(
     public readonly name: string,
     public readonly help: string,
-    public readonly labels?: Labels
+    public readonly labels?: Labels,
   ) {}
-  
+
   /**
    * Set gauge value
    */
@@ -184,11 +186,11 @@ export class Gauge implements Metric {
       this.value = value;
     }
   }
-  
+
   /**
    * Increment gauge
    */
-  inc(value: number = 1, labels?: Labels): void {
+  inc(value = 1, labels?: Labels): void {
     if (labels) {
       const key = this.serializeLabels(labels);
       const current = this.labeledGauges.get(key) || 0;
@@ -197,14 +199,14 @@ export class Gauge implements Metric {
       this.value += value;
     }
   }
-  
+
   /**
    * Decrement gauge
    */
-  dec(value: number = 1, labels?: Labels): void {
+  dec(value = 1, labels?: Labels): void {
     this.inc(-value, labels);
   }
-  
+
   /**
    * Get gauge value
    */
@@ -215,7 +217,7 @@ export class Gauge implements Metric {
     }
     return this.value;
   }
-  
+
   /**
    * Get all labeled values
    */
@@ -227,18 +229,18 @@ export class Gauge implements Metric {
     }
     return result;
   }
-  
+
   private serializeLabels(labels: Labels): string {
     return Object.entries(labels)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([k, v]) => `${k}="${v}"`)
       .join(",");
   }
-  
+
   private deserializeLabels(key: string): Labels {
     const labels: Labels = {};
     if (!key) return labels;
-    
+
     const pairs = key.split(",");
     for (const pair of pairs) {
       const [k, v] = pair.split("=");
@@ -253,7 +255,7 @@ export class Gauge implements Metric {
  */
 export class MetricsRegistry {
   private metrics = new Map<string, Metric>();
-  
+
   /**
    * Register a counter
    */
@@ -265,7 +267,7 @@ export class MetricsRegistry {
     }
     return counter;
   }
-  
+
   /**
    * Register a histogram
    */
@@ -277,7 +279,7 @@ export class MetricsRegistry {
     }
     return histogram;
   }
-  
+
   /**
    * Register a gauge
    */
@@ -289,20 +291,20 @@ export class MetricsRegistry {
     }
     return gauge;
   }
-  
+
   /**
    * Get all metrics
    */
   getMetrics(): Metric[] {
     return Array.from(this.metrics.values());
   }
-  
+
   /**
    * Export as JSON
    */
-  exportJSON(): Record<string, any> {
-    const result: Record<string, any> = {};
-    
+  exportJSON(): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
     for (const metric of this.metrics.values()) {
       if (metric instanceof Counter) {
         result[metric.name] = {
@@ -323,20 +325,20 @@ export class MetricsRegistry {
         };
       }
     }
-    
+
     return result;
   }
-  
+
   /**
    * Export as Prometheus text format
    */
   exportPrometheus(): string {
     const lines: string[] = [];
-    
+
     for (const metric of this.metrics.values()) {
       lines.push(`# HELP ${metric.name} ${metric.help}`);
       lines.push(`# TYPE ${metric.name} ${metric.type}`);
-      
+
       if (metric instanceof Counter) {
         // Unlabeled
         lines.push(`${metric.name} ${metric.get()}`);
@@ -366,10 +368,10 @@ export class MetricsRegistry {
           lines.push(`${metric.name}{${labelStr}} ${value}`);
         }
       }
-      
+
       lines.push(""); // Empty line between metrics
     }
-    
+
     return lines.join("\n");
   }
 }

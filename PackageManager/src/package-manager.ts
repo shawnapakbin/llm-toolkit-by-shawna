@@ -1,6 +1,5 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import path from "path";
 import { z } from "zod";
 
 const execAsync = promisify(exec);
@@ -61,7 +60,10 @@ interface DetectionResult {
   lockFile?: string;
 }
 
-async function runCommand(command: string, cwd: string): Promise<{ stdout: string; stderr: string }> {
+async function runCommand(
+  command: string,
+  cwd: string,
+): Promise<{ stdout: string; stderr: string }> {
   try {
     const result = await execAsync(command, {
       cwd,
@@ -69,10 +71,14 @@ async function runCommand(command: string, cwd: string): Promise<{ stdout: strin
       maxBuffer: 10 * 1024 * 1024,
     });
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const execError = error as Partial<NodeJS.ErrnoException> & {
+      stdout?: string;
+      stderr?: string;
+    };
     return {
-      stdout: error.stdout || "",
-      stderr: error.stderr || error.message,
+      stdout: execError.stdout || "",
+      stderr: execError.stderr || execError.message || String(error),
     };
   }
 }
@@ -80,7 +86,9 @@ async function runCommand(command: string, cwd: string): Promise<{ stdout: strin
 /**
  * Detect package manager and get version info
  */
-export async function detectPackageManager(cwd: string): Promise<{ detected: DetectionResult | null; available: string[] }> {
+export async function detectPackageManager(
+  cwd: string,
+): Promise<{ detected: DetectionResult | null; available: string[] }> {
   const available: string[] = [];
   let detected: DetectionResult | null = null;
 
@@ -191,7 +199,11 @@ export async function detectPackageManager(cwd: string): Promise<{ detected: Det
 /**
  * Install packages
  */
-export async function installPackages(input: InstallPackagesInput, manager: PackageManager, cwd: string): Promise<{ output: string; installed: number }> {
+export async function installPackages(
+  input: InstallPackagesInput,
+  manager: PackageManager,
+  cwd: string,
+): Promise<{ output: string; installed: number }> {
   let command = "";
 
   switch (manager) {
@@ -205,18 +217,16 @@ export async function installPackages(input: InstallPackagesInput, manager: Pack
       break;
     case "cargo":
       if (input.packages.length > 1) {
-        command = input.packages.map(p => `cargo add ${p}`).join(" && ");
+        command = input.packages.map((p) => `cargo add ${p}`).join(" && ");
       } else {
         command = `cargo add ${input.packages[0]}`;
       }
       break;
     case "maven":
-      command = input.packages
-        .map(p => `mvn dependency:get -Dartifact=${p}`)
-        .join(" && ");
+      command = input.packages.map((p) => `mvn dependency:get -Dartifact=${p}`).join(" && ");
       break;
     case "go":
-      command = input.packages.map(p => `go get ${p}`).join(" && ");
+      command = input.packages.map((p) => `go get ${p}`).join(" && ");
       break;
     default:
       throw new Error(`Unsupported package manager: ${manager}`);
@@ -232,7 +242,11 @@ export async function installPackages(input: InstallPackagesInput, manager: Pack
 /**
  * Update packages
  */
-export async function updatePackages(input: UpdatePackagesInput, manager: PackageManager, cwd: string): Promise<{ output: string; updated: number }> {
+export async function updatePackages(
+  input: UpdatePackagesInput,
+  manager: PackageManager,
+  cwd: string,
+): Promise<{ output: string; updated: number }> {
   let command = "";
 
   switch (manager) {
@@ -275,7 +289,11 @@ export async function updatePackages(input: UpdatePackagesInput, manager: Packag
 /**
  * Audit for vulnerabilities
  */
-export async function auditVulnerabilities(input: AuditVulnerabilitiesInput, manager: PackageManager, cwd: string): Promise<{ output: string; vulnerabilities: number }> {
+export async function auditVulnerabilities(
+  input: AuditVulnerabilitiesInput,
+  manager: PackageManager,
+  cwd: string,
+): Promise<{ output: string; vulnerabilities: number }> {
   let command = "";
 
   switch (manager) {
@@ -308,7 +326,11 @@ export async function auditVulnerabilities(input: AuditVulnerabilitiesInput, man
 /**
  * List outdated packages
  */
-export async function listOutdated(input: z.infer<typeof ListOutdatedSchema>, manager: PackageManager, cwd: string): Promise<{ output: string; outdated: number }> {
+export async function listOutdated(
+  input: z.infer<typeof ListOutdatedSchema>,
+  manager: PackageManager,
+  cwd: string,
+): Promise<{ output: string; outdated: number }> {
   let command = "";
 
   switch (manager) {
@@ -340,7 +362,11 @@ export async function listOutdated(input: z.infer<typeof ListOutdatedSchema>, ma
 /**
  * Remove dependencies
  */
-export async function removeDependencies(input: RemoveDependenciesInput, manager: PackageManager, cwd: string): Promise<{ output: string; removed: number }> {
+export async function removeDependencies(
+  input: RemoveDependenciesInput,
+  manager: PackageManager,
+  cwd: string,
+): Promise<{ output: string; removed: number }> {
   let command = "";
 
   switch (manager) {
@@ -351,7 +377,7 @@ export async function removeDependencies(input: RemoveDependenciesInput, manager
       command = `python -m pip uninstall -y ${input.packages.join(" ")}`;
       break;
     case "cargo":
-      command = input.packages.map(p => `cargo remove ${p}`).join(" && ");
+      command = input.packages.map((p) => `cargo remove ${p}`).join(" && ");
       break;
     default:
       throw new Error(`Unsupported package manager: ${manager}`);
@@ -367,7 +393,11 @@ export async function removeDependencies(input: RemoveDependenciesInput, manager
 /**
  * View dependencies
  */
-export async function viewDependencies(input: ViewDependenciesInput, manager: PackageManager, cwd: string): Promise<{ output: string; dependencyCount: number }> {
+export async function viewDependencies(
+  input: ViewDependenciesInput,
+  manager: PackageManager,
+  cwd: string,
+): Promise<{ output: string; dependencyCount: number }> {
   let command = "";
 
   switch (manager) {
@@ -400,7 +430,11 @@ export async function viewDependencies(input: ViewDependenciesInput, manager: Pa
 /**
  * Lock/freeze dependencies
  */
-export async function lockDependencies(input: LockDependenciesInput, manager: PackageManager, cwd: string): Promise<{ output: string; locked: boolean }> {
+export async function lockDependencies(
+  input: LockDependenciesInput,
+  manager: PackageManager,
+  cwd: string,
+): Promise<{ output: string; locked: boolean }> {
   let command = "";
 
   switch (manager) {

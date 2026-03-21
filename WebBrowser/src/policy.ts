@@ -38,7 +38,7 @@ export function isBlockedHostname(hostname: string): boolean {
 }
 
 export function validateTargetUrl(
-  urlValue: string
+  urlValue: string,
 ): { ok: true } | { ok: false; message: string; errorCode: string } {
   try {
     const parsed = new URL(urlValue);
@@ -53,8 +53,7 @@ export function validateTargetUrl(
     if (isBlockedHostname(parsed.hostname)) {
       return {
         ok: false,
-        message:
-          "Blocked by SSRF policy: private, loopback, or link-local hosts are not allowed.",
+        message: "Blocked by SSRF policy: private, loopback, or link-local hosts are not allowed.",
         errorCode: "POLICY_BLOCKED",
       };
     }

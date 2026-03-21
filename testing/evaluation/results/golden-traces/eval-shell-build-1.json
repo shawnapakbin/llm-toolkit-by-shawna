@@ -1,0 +1,17 @@
+{
+  "traceId": "1774060606312-mre2ix49",
+  "workflowId": "eval-shell-build-1",
+  "workflowName": "Shell Build Simulation",
+  "status": "success",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "run-build",
+      "toolId": "terminal",
+      "success": true,
+      "retries": 0,
+      "durationMs": 0
+    }
+  ],
+  "generatedAt": "2026-03-21T02:36:46.312Z"
+}

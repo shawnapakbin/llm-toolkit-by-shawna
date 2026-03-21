@@ -1,24 +1,24 @@
 /**
  * Browserless Policy Tests
- * 
+ *
  * Unit tests for API validation and security constraints.
  */
 
 import {
-  isValidRegion,
-  validateTimeout,
-  isValidApiKey,
-  isBlockedHostname,
-  validateTargetUrl,
-  isCodeTooLong,
-  hasUnsafeCodePatterns,
-  validateConcurrencyLimit,
+  DEFAULT_CONCURRENCY_LIMIT,
   DEFAULT_TIMEOUT_MS,
+  MAX_CODE_LENGTH,
+  MAX_CONCURRENCY_LIMIT,
   MAX_TIMEOUT_MS,
   MIN_TIMEOUT_MS,
-  MAX_CODE_LENGTH,
-  DEFAULT_CONCURRENCY_LIMIT,
-  MAX_CONCURRENCY_LIMIT,
+  hasUnsafeCodePatterns,
+  isBlockedHostname,
+  isCodeTooLong,
+  isValidApiKey,
+  isValidRegion,
+  validateConcurrencyLimit,
+  validateTargetUrl,
+  validateTimeout,
 } from "../src/policy";
 
 describe("Browserless Policy", () => {
@@ -56,8 +56,8 @@ describe("Browserless Policy", () => {
 
     it("should use default for invalid values", () => {
       expect(validateTimeout(undefined)).toBe(DEFAULT_TIMEOUT_MS);
-      expect(validateTimeout(NaN)).toBe(DEFAULT_TIMEOUT_MS);
-      expect(validateTimeout(Infinity)).toBe(DEFAULT_TIMEOUT_MS);
+      expect(validateTimeout(Number.NaN)).toBe(DEFAULT_TIMEOUT_MS);
+      expect(validateTimeout(Number.POSITIVE_INFINITY)).toBe(DEFAULT_TIMEOUT_MS);
     });
   });
 
@@ -76,8 +76,8 @@ describe("Browserless Policy", () => {
     });
 
     it("should reject non-string inputs", () => {
-      expect(isValidApiKey(null as any)).toBe(false);
-      expect(isValidApiKey(123 as any)).toBe(false);
+      expect(isValidApiKey(null as unknown as string)).toBe(false);
+      expect(isValidApiKey(123 as unknown as string)).toBe(false);
     });
   });
 
@@ -124,7 +124,7 @@ describe("Browserless Policy", () => {
     it("should reject invalid URLs", () => {
       expect(validateTargetUrl("not-a-url").valid).toBe(false);
       expect(validateTargetUrl("").valid).toBe(false);
-      expect(validateTargetUrl(null as any).valid).toBe(false);
+      expect(validateTargetUrl(null as unknown as string).valid).toBe(false);
     });
 
     it("should reject localhost URLs", () => {
@@ -211,8 +211,8 @@ describe("Browserless Policy", () => {
 
     it("should use default for invalid values", () => {
       expect(validateConcurrencyLimit(undefined)).toBe(DEFAULT_CONCURRENCY_LIMIT);
-      expect(validateConcurrencyLimit(NaN)).toBe(DEFAULT_CONCURRENCY_LIMIT);
-      expect(validateConcurrencyLimit(Infinity)).toBe(DEFAULT_CONCURRENCY_LIMIT);
+      expect(validateConcurrencyLimit(Number.NaN)).toBe(DEFAULT_CONCURRENCY_LIMIT);
+      expect(validateConcurrencyLimit(Number.POSITIVE_INFINITY)).toBe(DEFAULT_CONCURRENCY_LIMIT);
     });
 
     it("should floor decimal values", () => {

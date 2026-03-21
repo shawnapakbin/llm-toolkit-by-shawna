@@ -1,5 +1,5 @@
-import path from "path";
 import fsSync from "fs";
+import path from "path";
 
 /**
  * Validate repository path exists and is a Git repo
@@ -80,7 +80,8 @@ export function canForcePush(branch: string): { allowed: boolean; reason?: strin
 export function canHardReset(): { allowed: boolean; warning?: string } {
   return {
     allowed: true,
-    warning: "Hard reset will discard all uncommitted changes. Ensure you have backups or stashed changes.",
+    warning:
+      "Hard reset will discard all uncommitted changes. Ensure you have backups or stashed changes.",
   };
 }
 
@@ -169,7 +170,8 @@ export function canForceDeleteBranch(branch: string): { allowed: boolean; reason
  * Get workspace root for Git operations
  */
 export function getGitWorkspaceRoot(): string {
-  const root = process.env.GIT_WORKSPACE_ROOT || process.env.FILE_EDITOR_WORKSPACE_ROOT || process.cwd();
+  const root =
+    process.env.GIT_WORKSPACE_ROOT || process.env.FILE_EDITOR_WORKSPACE_ROOT || process.cwd();
   return path.resolve(root);
 }
 

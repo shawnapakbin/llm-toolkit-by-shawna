@@ -1,6 +1,6 @@
-import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
+import fs from "fs/promises";
 import { z } from "zod";
 
 export type ReadFileInput = z.infer<typeof ReadFileSchema>;
@@ -76,7 +76,10 @@ const BACKUP_DIR = ".file-editor-backups";
 /**
  * Read file contents with optional line range
  */
-export async function readFile(input: ReadFileInput, workspaceRoot: string): Promise<{ content: string; lines: number }> {
+export async function readFile(
+  input: ReadFileInput,
+  workspaceRoot: string,
+): Promise<{ content: string; lines: number }> {
   const absolutePath = path.resolve(workspaceRoot, input.path);
 
   // Check file exists
@@ -125,7 +128,10 @@ export async function readFile(input: ReadFileInput, workspaceRoot: string): Pro
 /**
  * Write content to file with optional backup
  */
-export async function writeFile(input: WriteFileInput, workspaceRoot: string): Promise<{ bytesWritten: number; backup?: string }> {
+export async function writeFile(
+  input: WriteFileInput,
+  workspaceRoot: string,
+): Promise<{ bytesWritten: number; backup?: string }> {
   const absolutePath = path.resolve(workspaceRoot, input.path);
   const dir = path.dirname(absolutePath);
 
@@ -165,7 +171,10 @@ export async function writeFile(input: WriteFileInput, workspaceRoot: string): P
 /**
  * Search for pattern in files
  */
-export async function searchFiles(input: SearchFilesInput, workspaceRoot: string): Promise<SearchResult[]> {
+export async function searchFiles(
+  input: SearchFilesInput,
+  workspaceRoot: string,
+): Promise<SearchResult[]> {
   const searchDir = input.directory ? path.resolve(workspaceRoot, input.directory) : workspaceRoot;
   const results: SearchResult[] = [];
   const pattern = input.caseSensitive ? input.pattern : input.pattern.toLowerCase();
@@ -196,7 +205,12 @@ export async function searchFiles(input: SearchFilesInput, workspaceRoot: string
     }
   }
 
-  async function searchInFile(filePath: string, relativePath: string, searchPattern: string, caseSensitive: boolean): Promise<void> {
+  async function searchInFile(
+    filePath: string,
+    relativePath: string,
+    searchPattern: string,
+    caseSensitive: boolean,
+  ): Promise<void> {
     try {
       const stats = await fs.stat(filePath);
       if (stats.size > MAX_FILE_SIZE) return; // Skip large files
@@ -236,7 +250,10 @@ export async function searchFiles(input: SearchFilesInput, workspaceRoot: string
 /**
  * List directory contents
  */
-export async function listDirectory(input: ListDirectoryInput, workspaceRoot: string): Promise<FileInfo[]> {
+export async function listDirectory(
+  input: ListDirectoryInput,
+  workspaceRoot: string,
+): Promise<FileInfo[]> {
   const absolutePath = path.resolve(workspaceRoot, input.path);
   const stats = await fs.stat(absolutePath);
 
@@ -281,7 +298,10 @@ export async function listDirectory(input: ListDirectoryInput, workspaceRoot: st
 /**
  * Delete file with optional backup
  */
-export async function deleteFile(input: DeleteFileInput, workspaceRoot: string): Promise<{ deleted: boolean; backup?: string }> {
+export async function deleteFile(
+  input: DeleteFileInput,
+  workspaceRoot: string,
+): Promise<{ deleted: boolean; backup?: string }> {
   const absolutePath = path.resolve(workspaceRoot, input.path);
 
   // Check file exists
@@ -316,7 +336,10 @@ export async function deleteFile(input: DeleteFileInput, workspaceRoot: string):
 /**
  * Move/rename file
  */
-export async function moveFile(input: MoveFileInput, workspaceRoot: string): Promise<{ moved: boolean }> {
+export async function moveFile(
+  input: MoveFileInput,
+  workspaceRoot: string,
+): Promise<{ moved: boolean }> {
   const sourcePath = path.resolve(workspaceRoot, input.source);
   const destPath = path.resolve(workspaceRoot, input.destination);
 

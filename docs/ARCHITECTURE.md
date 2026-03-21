@@ -90,6 +90,7 @@ SQLite tables capture agent intelligence:
 | **Terminal** | Execute shell commands (OS-aware) | 3333 | ✅ Working |
 | **WebBrowser** | Fetch + parse web pages | 3334 | ✅ Working |
 | **Calculator** | Math expressions (engineering notation) | 3335 | ✅ Working |
+| **AskUser** | Interactive interview and clarification workflows | 3338 | ✅ Working |
 | **Clock** | Current date/time + timezone | 3337 | ✅ Working |
 | **Browserless** | Advanced browser automation (BrowserQL, screenshots, PDFs) | 3003 | ✅ Working |
 | **Git** (Phase 2) | Clone, commit, branch, merge | TBD | 🔄 Planned |

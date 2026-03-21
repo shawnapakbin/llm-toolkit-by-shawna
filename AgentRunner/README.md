@@ -102,6 +102,30 @@ registry.stopHealthCheckMonitor();
 
 ## Workflow Execution
 
+### Clarification-First Planning (AskUser)
+
+Use AskUser before executing ambiguous requests.
+
+```typescript
+const prompt = "fix this asap";
+const ambiguity = runner.analyzePromptAmbiguity(prompt);
+
+if (ambiguity.ambiguous) {
+  const clarificationWorkflow = runner.buildClarificationWorkflow(prompt, {
+    taskRunId: "task-123",
+    expiresInSeconds: 1800,
+  });
+
+  await runner.executeWorkflow(clarificationWorkflow);
+}
+```
+
+`buildClarificationWorkflow()` generates a one-step workflow that calls AskUser:
+- tool: `ask-user`
+- endpoint: `/tools/ask_user_interview`
+- action: `create`
+- question set: goal, scope, constraints, timeline, approval
+
 ### Sequential Execution
 
 Steps execute one after another. Dependencies are checked before each step.
@@ -303,4 +327,5 @@ console.log(`Running workflows: ${running.join(", ")}`);
 
 ## License
 
-MIT
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties). See ../LICENSE.
+Original Author: Shawna Pakbin

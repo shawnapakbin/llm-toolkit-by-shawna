@@ -1,44 +1,53 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+import path from "path";
 import {
-  takeScreenshot,
-  generatePDF,
-  scrapePage,
-  getContent,
-  unblockPage,
-  executeBQL,
-  executeFunction,
-  downloadFile,
-  exportPage,
-  performanceLighthouse,
-  type BrowserlessConfig,
-} from "./browserless";
-import {
-  validateTimeout,
-  isValidApiKey,
-  validateTargetUrl,
-  isCodeTooLong,
-  hasUnsafeCodePatterns,
-  validateConcurrencyLimit,
-  DEFAULT_TIMEOUT_MS,
-} from "./policy";
-import {
-  ToolResponse,
   ErrorCode,
   OperationTimer,
-  generateTraceId,
+  type ToolResponse,
+  createErrorResponse,
   createSuccessResponse,
-  createErrorResponse
+  generateTraceId,
 } from "@shared/types";
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
 import { getRegistry } from "../../Observability/src/metrics";
+import {
+  type BrowserlessConfig,
+  downloadFile,
+  executeBQL,
+  executeFunction,
+  exportPage,
+  generatePDF,
+  getContent,
+  performanceLighthouse,
+  scrapePage,
+  takeScreenshot,
+  unblockPage,
+} from "./browserless";
+import {
+  DEFAULT_TIMEOUT_MS,
+  hasUnsafeCodePatterns,
+  isCodeTooLong,
+  isValidApiKey,
+  validateConcurrencyLimit,
+  validateTargetUrl,
+  validateTimeout,
+} from "./policy";
 
+// Load .env from the tool root regardless of launch cwd, then merge process env.
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 dotenv.config();
 
 // Setup observability metrics
 const metrics = getRegistry();
-const executionCounter = metrics.counter('browserless_requests_total', 'Total Browserless API requests');
-const durationHistogram = metrics.histogram('browserless_request_duration_ms', 'Browserless request duration in milliseconds');
+const executionCounter = metrics.counter(
+  "browserless_requests_total",
+  "Total Browserless API requests",
+);
+const durationHistogram = metrics.histogram(
+  "browserless_request_duration_ms",
+  "Browserless request duration in milliseconds",
+);
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3003;
@@ -47,18 +56,18 @@ const PORT = Number(process.env.PORT) || 3003;
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-// Get API key from environment or request
-const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY || "";
 const DEFAULT_REGION = process.env.BROWSERLESS_DEFAULT_REGION || "production-sfo";
-const CONFIGURED_TIMEOUT_MS = Number(process.env.BROWSERLESS_DEFAULT_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
-const CONCURRENCY_LIMIT = validateConcurrencyLimit(Number(process.env.BROWSERLESS_CONCURRENCY_LIMIT));
+const CONFIGURED_TIMEOUT_MS = Number(
+  process.env.BROWSERLESS_DEFAULT_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS,
+);
+const CONCURRENCY_LIMIT = validateConcurrencyLimit(
+  Number(process.env.BROWSERLESS_CONCURRENCY_LIMIT),
+);
 
 // Concurrency queue system
 let activeRequests = 0;
 
-async function executeWithConcurrencyLimit<T>(
-  fn: () => Promise<T>
-): Promise<T> {
+async function executeWithConcurrencyLimit<T>(fn: () => Promise<T>): Promise<T> {
   while (activeRequests >= CONCURRENCY_LIMIT) {
     // Wait 50ms before checking again
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -73,26 +82,46 @@ async function executeWithConcurrencyLimit<T>(
 }
 
 function getConfig(apiKey?: string, region?: string, timeoutMs?: number): BrowserlessConfig {
-  const effectiveApiKey = apiKey || BROWSERLESS_API_KEY;
-  
+  const fromInput = apiKey?.trim();
+  const fromEnv = process.env.BROWSERLESS_API_KEY?.trim();
+  // Alias supports MCP/host env blocks that may use token naming.
+  const fromEnvAlias = process.env.BROWSERLESS_API_TOKEN?.trim();
+  const effectiveApiKey = fromInput || fromEnv || fromEnvAlias || "";
+
   if (!isValidApiKey(effectiveApiKey)) {
-    throw new Error("Browserless API key is required and must be at least 10 characters. Provide via BROWSERLESS_API_KEY environment variable or apiKey in request body.");
+    throw new Error(
+      "Browserless API key is required and must be at least 10 characters. Provide apiKey in request body, BROWSERLESS_API_KEY in .env, or BROWSERLESS_API_KEY/BROWSERLESS_API_TOKEN in mcp.json env.",
+    );
   }
 
   return {
     apiKey: effectiveApiKey,
-    region: region as any || DEFAULT_REGION,
+    region: (region || DEFAULT_REGION) as BrowserlessConfig["region"],
     timeoutMs: validateTimeout(timeoutMs || CONFIGURED_TIMEOUT_MS),
   };
 }
 
+function hasConfiguredApiKey(): boolean {
+  return Boolean(
+    process.env.BROWSERLESS_API_KEY?.trim() || process.env.BROWSERLESS_API_TOKEN?.trim(),
+  );
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // Helper to wrap responses with timing and traceId
-function wrapResponse(result: any, timingMs: number, traceId: string): any {
+function wrapResponse(
+  result: { success: boolean; error?: string },
+  timingMs: number,
+  traceId: string,
+): Record<string, unknown> {
   // Record metrics
   if (!result.success) {
-    executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+    executionCounter.inc({ status: "error", errorCode: ErrorCode.EXECUTION_FAILED });
   } else {
-    executionCounter.inc({ status: 'success' });
+    executionCounter.inc({ status: "success" });
     durationHistogram.observe(timingMs);
   }
 
@@ -104,14 +133,19 @@ function wrapResponse(result: any, timingMs: number, traceId: string): any {
         errorMessage: result.error || "Operation failed",
         data: result,
         timingMs,
-        traceId
+        traceId,
       };
-  
+
+  const responseData =
+    response.data && typeof response.data === "object"
+      ? (response.data as Record<string, unknown>)
+      : {};
+
   // Backward compatibility: expose data fields at root + keep "error" field
   return {
     ...response,
-    ...response.data,
-    error: response.errorMessage
+    ...responseData,
+    error: response.errorMessage,
   };
 }
 
@@ -125,17 +159,17 @@ app.post("/screenshot", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
         const timingMs = timer.elapsed();
-        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
+        executionCounter.inc({ status: "error", errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
           timingMs,
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -144,14 +178,14 @@ app.post("/screenshot", async (req, res) => {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await takeScreenshot(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const timingMs = timer.elapsed();
-      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+      executionCounter.inc({ status: "error", errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timingMs,
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -163,17 +197,17 @@ app.post("/pdf", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
         const timingMs = timer.elapsed();
-        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
+        executionCounter.inc({ status: "error", errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
           timingMs,
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -182,14 +216,14 @@ app.post("/pdf", async (req, res) => {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await generatePDF(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const timingMs = timer.elapsed();
-      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+      executionCounter.inc({ status: "error", errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timingMs,
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -201,17 +235,17 @@ app.post("/scrape", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
         const timingMs = timer.elapsed();
-        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
+        executionCounter.inc({ status: "error", errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
           timingMs,
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -220,14 +254,14 @@ app.post("/scrape", async (req, res) => {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await scrapePage(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const timingMs = timer.elapsed();
-      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+      executionCounter.inc({ status: "error", errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timingMs,
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -239,17 +273,17 @@ app.post("/content", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
         const timingMs = timer.elapsed();
-        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
+        executionCounter.inc({ status: "error", errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
           timingMs,
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -258,14 +292,14 @@ app.post("/content", async (req, res) => {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await getContent(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const timingMs = timer.elapsed();
-      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+      executionCounter.inc({ status: "error", errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timingMs,
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -277,17 +311,17 @@ app.post("/unblock", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
         const timingMs = timer.elapsed();
-        executionCounter.inc({ status: 'error', errorCode: ErrorCode.INVALID_INPUT });
+        executionCounter.inc({ status: "error", errorCode: ErrorCode.INVALID_INPUT });
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
           timingMs,
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -296,14 +330,14 @@ app.post("/unblock", async (req, res) => {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await unblockPage(config, req.body);
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const timingMs = timer.elapsed();
-      executionCounter.inc({ status: 'error', errorCode: ErrorCode.EXECUTION_FAILED });
+      executionCounter.inc({ status: "error", errorCode: ErrorCode.EXECUTION_FAILED });
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timingMs,
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -315,7 +349,7 @@ app.post("/bql", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await executeBQL(config, {
@@ -325,12 +359,12 @@ app.post("/bql", async (req, res) => {
         replay: req.body.replay !== false, // Default to true for session recording
       });
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timer.elapsed(),
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -342,16 +376,16 @@ app.post("/function", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const code = req.body.code;
-      
+
       if (!code || typeof code !== "string") {
         const errorResponse = createErrorResponse(
           ErrorCode.INVALID_INPUT,
           "Code is required and must be a string",
           timer.elapsed(),
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -362,7 +396,7 @@ app.post("/function", async (req, res) => {
           ErrorCode.INVALID_INPUT,
           "Code is too long. Maximum 10000 characters allowed.",
           timer.elapsed(),
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -373,7 +407,7 @@ app.post("/function", async (req, res) => {
           ErrorCode.POLICY_BLOCKED,
           "Code contains potentially unsafe patterns",
           timer.elapsed(),
-          traceId
+          traceId,
         );
         res.status(403).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -386,12 +420,12 @@ app.post("/function", async (req, res) => {
         timeout: req.body.timeoutMs,
       });
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timer.elapsed(),
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -403,7 +437,7 @@ app.post("/download", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const config = getConfig(req.body.apiKey, req.body.region, req.body.timeoutMs);
       const result = await downloadFile(config, {
@@ -412,12 +446,12 @@ app.post("/download", async (req, res) => {
         timeout: req.body.timeoutMs,
       });
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timer.elapsed(),
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -429,7 +463,7 @@ app.post("/export", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
@@ -437,7 +471,7 @@ app.post("/export", async (req, res) => {
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
           timer.elapsed(),
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -450,12 +484,12 @@ app.post("/export", async (req, res) => {
         timeout: req.body.timeoutMs,
       });
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timer.elapsed(),
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -467,7 +501,7 @@ app.post("/performance", async (req, res) => {
   return executeWithConcurrencyLimit(async () => {
     const timer = new OperationTimer();
     const traceId = generateTraceId();
-    
+
     try {
       const urlValidation = validateTargetUrl(req.body.url);
       if (!urlValidation.valid) {
@@ -475,7 +509,7 @@ app.post("/performance", async (req, res) => {
           ErrorCode.INVALID_INPUT,
           urlValidation.error || "Invalid URL",
           timer.elapsed(),
-          traceId
+          traceId,
         );
         res.status(400).json({ ...errorResponse, error: errorResponse.errorMessage });
         return;
@@ -488,12 +522,12 @@ app.post("/performance", async (req, res) => {
         timeout: req.body.timeoutMs,
       });
       res.json(wrapResponse(result, timer.elapsed(), traceId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorResponse = createErrorResponse(
         ErrorCode.EXECUTION_FAILED,
-        error.message,
+        getErrorMessage(error),
         timer.elapsed(),
-        traceId
+        traceId,
       );
       res.status(500).json({ ...errorResponse, error: errorResponse.errorMessage });
     }
@@ -507,9 +541,11 @@ export { app };
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Browserless tool server running on http://localhost:${PORT}`);
-    
-    if (!BROWSERLESS_API_KEY) {
-      console.warn("WARNING: BROWSERLESS_API_KEY not set in environment. API key must be provided with each request.");
+
+    if (!hasConfiguredApiKey()) {
+      console.warn(
+        "WARNING: BROWSERLESS_API_KEY/BROWSERLESS_API_TOKEN not set in environment. API key must be provided with each request.",
+      );
     }
   });
 }

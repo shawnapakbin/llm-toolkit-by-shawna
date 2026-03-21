@@ -1,6 +1,6 @@
-import fs from "fs/promises";
 import os from "os";
 import path from "path";
+import fs from "fs/promises";
 import request from "supertest";
 import { app } from "../src/index";
 
@@ -25,7 +25,11 @@ describe("DocumentScraper HTTP endpoints", () => {
   });
 
   test("reads local markdown file", async () => {
-    await fs.writeFile(path.join(tempRoot, "sample.md"), "# Title\n\nThis is a sample markdown document.", "utf8");
+    await fs.writeFile(
+      path.join(tempRoot, "sample.md"),
+      "# Title\n\nThis is a sample markdown document.",
+      "utf8",
+    );
 
     const response = await request(app)
       .post("/tools/read_document")
@@ -53,9 +57,7 @@ describe("DocumentScraper HTTP endpoints", () => {
   });
 
   test("returns 400 for missing input", async () => {
-    const response = await request(app)
-      .post("/tools/read_document")
-      .send({});
+    const response = await request(app).post("/tools/read_document").send({});
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);

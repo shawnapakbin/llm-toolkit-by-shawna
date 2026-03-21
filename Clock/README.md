@@ -207,7 +207,7 @@ Add this configuration to your LM Studio `mcp.json`:
   "mcpServers": {
     "clock": {
       "command": "node",
-      "args": ["<REPO_ROOT>/Clock/dist/mcp-server.js"],
+      "args": ["Clock/dist/mcp-server.js"],
       "env": {
         "CLOCK_DEFAULT_TIMEZONE": "",
         "CLOCK_DEFAULT_LOCALE": "en-US"
@@ -319,4 +319,5 @@ npm test             # Run tests (if available)
 
 ## License
 
-MIT
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties). See ../LICENSE.
+Original Author: Shawna Pakbin

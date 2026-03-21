@@ -10,8 +10,8 @@
     "test": "jest"
   },
   "keywords": ["observability", "logging", "metrics", "tracing"],
-  "author": "Shawna Pak-Bin",
-  "license": "MIT",
+  "author": "Shawna Pakbin",
+  "license": "LicenseRef-Shawna-NonCommercial",
   "dependencies": {},
   "devDependencies": {
     "@types/jest": "^29.5.14",

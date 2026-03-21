@@ -34,7 +34,7 @@ npm run startup:check # Workspace readiness (MCP binaries + config sync)
 
 ## Architecture
 
-### 6 Core Tools (v1 → v2 compatibility maintained)
+### 8 Core Tools (v1 → v2 compatibility maintained)
 
 - **[Terminal](Terminal/README.md)** — Execute shell commands (OS-aware: Windows/macOS/Linux) ✅
 - **[WebBrowser](WebBrowser/README.md)** — Fetch + parse web pages (SSRF-protected) ✅
@@ -42,6 +42,8 @@ npm run startup:check # Workspace readiness (MCP binaries + config sync)
 - **[DocumentScraper](DocumentScraper/README.md)** — Read documents with structured extraction + encrypted PDF detection ✅
 - **[Clock](Clock/README.md)** — Date/time + timezones (IANA + locale formatting) ✅
 - **[Browserless](Browserless/README.md)** — Advanced browser automation (screenshots, PDFs, BrowserQL) ✅
+- **[AskUser](AskUser/README.md)** — Interactive interview workflow for planning and clarification ✅
+- **[RAG](RAG/README.md)** — Persistent retrieval augmented generation with source lifecycle + approval-gated writes ✅
 
 ### Foundation Layer (Phase 0 ✅)
 
@@ -59,16 +61,27 @@ npm run startup:check # Workspace readiness (MCP binaries + config sync)
 
 See [AGENT_ROADMAP.md](AGENT_ROADMAP.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
+## Release Scope Tracking
+
+To avoid confusion between intentional version enhancements and accidental drift, all upcoming release features must be listed in [docs/VNEXT_FEATURES.md](docs/VNEXT_FEATURES.md).
+
+During hardening for the next release:
+- Treat listed features as intentional scope.
+- Treat unlisted feature additions as out-of-scope until the manifest is updated.
+- Run `npm run verify:all` before release sign-off.
+
 ## Code Quality
 
 ### Quality Gates (Every PR)
 
 ```bash
+npm run verify:vnext-scope # Enforce vNext manifest updates for new tool scope
 npm run check:ci       # Biome: format + lint ✓
 npm run type-check     # TypeScript strict mode ✓
 npm run test:ci        # Jest: 80%+ coverage ✓
 npm run build          # Compilation check ✓
 npm run startup:check:strict # Startup readiness + strict env gate ✓
+npm run verify:all     # Combined release hardening gate ✓
 ```
 
 `startup:check:strict` requires `BROWSERLESS_API_KEY` to be set.
@@ -116,7 +129,21 @@ Update your LM Studio `mcp.json`:
 npm run mcp:print-config
 ```
 
-Use the generated JSON as-is (paths are resolved for your current local folder). If you edit manually, use `<REPO_ROOT>` as your checked-out project path.
+Use the generated JSON as-is (paths are resolved for your current local folder). Avoid editing paths manually.
+
+To auto-deploy BOM-free bridge configs into installed LM Studio MCP plugins:
+
+```bash
+npm run mcp:sync-lmstudio
+```
+
+Optional override for non-default plugin location:
+
+```bash
+# Windows PowerShell
+$env:LMSTUDIO_MCP_PLUGIN_ROOT=(Read-Host "Enter absolute path to your LM Studio MCP plugins folder")
+npm run mcp:sync-lmstudio
+```
 
 ## Complete `mcp.json` Example
 
@@ -125,7 +152,7 @@ Use the generated JSON as-is (paths are resolved for your current local folder).
 	"mcpServers": {
 		"terminal": {
 			"command": "node",
-			"args": ["<REPO_ROOT>/Terminal/dist/mcp-server.js"],
+			"args": ["Terminal/dist/mcp-server.js"],
 			"env": {
 				"TERMINAL_DEFAULT_TIMEOUT_MS": "60000",
 				"TERMINAL_MAX_TIMEOUT_MS": "120000"
@@ -133,7 +160,7 @@ Use the generated JSON as-is (paths are resolved for your current local folder).
 		},
 		"web-browser": {
 			"command": "node",
-			"args": ["<REPO_ROOT>/WebBrowser/dist/mcp-server.js"],
+			"args": ["WebBrowser/dist/mcp-server.js"],
 			"env": {
 				"BROWSER_DEFAULT_TIMEOUT_MS": "20000",
 				"BROWSER_MAX_TIMEOUT_MS": "60000",
@@ -142,7 +169,7 @@ Use the generated JSON as-is (paths are resolved for your current local folder).
 		},
 		"calculator": {
 			"command": "node",
-			"args": ["<REPO_ROOT>/Calculator/dist/mcp-server.js"],
+			"args": ["Calculator/dist/mcp-server.js"],
 			"env": {
 				"CALCULATOR_DEFAULT_PRECISION": "12",
 				"CALCULATOR_MAX_PRECISION": "20"
@@ -150,7 +177,7 @@ Use the generated JSON as-is (paths are resolved for your current local folder).
 		},
 		"document-scraper": {
 			"command": "node",
-			"args": ["<REPO_ROOT>/DocumentScraper/dist/mcp-server.js"],
+			"args": ["DocumentScraper/dist/mcp-server.js"],
 			"env": {
 				"DOC_SCRAPER_DEFAULT_TIMEOUT_MS": "20000",
 				"DOC_SCRAPER_MAX_TIMEOUT_MS": "60000",
@@ -161,7 +188,7 @@ Use the generated JSON as-is (paths are resolved for your current local folder).
 		},
 		"clock": {
 			"command": "node",
-			"args": ["<REPO_ROOT>/Clock/dist/mcp-server.js"],
+			"args": ["Clock/dist/mcp-server.js"],
 			"env": {
 				"CLOCK_DEFAULT_TIMEZONE": "",
 				"CLOCK_DEFAULT_LOCALE": "en-US"
@@ -169,20 +196,41 @@ Use the generated JSON as-is (paths are resolved for your current local folder).
 		},
 		"browserless": {
 			"command": "node",
-			"args": ["<REPO_ROOT>/Browserless/dist/mcp-server.js"],
+			"args": ["Browserless/dist/mcp-server.js"],
 			"env": {
-				       "BROWSERLESS_API_KEY": "your-browserless-api-token-here",
+				"BROWSERLESS_API_KEY": "",
 				"BROWSERLESS_DEFAULT_REGION": "production-sfo",
 				"BROWSERLESS_DEFAULT_TIMEOUT_MS": "30000",
 				"BROWSERLESS_MAX_TIMEOUT_MS": "120000",
 				"BROWSERLESS_CONCURRENCY_LIMIT": "5"
+			}
+		},
+		"ask-user": {
+			"command": "node",
+			"args": ["AskUser/dist/mcp-server.js"],
+			"env": {
+				"ASK_USER_DB_PATH": "./memory.db",
+				"ASK_USER_DEFAULT_EXPIRES_SECONDS": "1800",
+				"ASK_USER_MAX_EXPIRES_SECONDS": "86400",
+				"ASK_USER_MAX_QUESTIONS": "20"
+			}
+		},
+		"rag": {
+			"command": "node",
+			"args": ["RAG/dist/mcp-server.js"],
+			"env": {
+				"RAG_DB_PATH": "./rag.db",
+				"RAG_EMBEDDINGS_MODE": "lmstudio",
+				"RAG_EMBEDDING_MODEL": "nomic-ai/nomic-embed-text-v1.5",
+				"RAG_DOC_SCRAPER_ENDPOINT": "http://localhost:3336/tools/read_document",
+				"RAG_ASK_USER_ENDPOINT": "http://localhost:3338/tools/ask_user_interview"
 			}
 		}
 	}
 }
 ```
 
-**Note**: Replace `<REPO_ROOT>` with your local project path if not using `npm run mcp:print-config`.  
+**Note**: For production use, prefer `npm run mcp:print-config` or `npm run mcp:sync-lmstudio` so paths are generated automatically for your machine.  
 Phase 2 will introduce unified orchestrator MCP server and multi-interface launchers.
 
 ## Testing & CI/CD
@@ -229,11 +277,12 @@ npm run verify:mcp-sync
 **Fix**: Set the environment variable for local testing.
 ```bash
 # macOS/Linux
-export BROWSERLESS_API_KEY='your-api-key-here'
+read -rsp "BROWSERLESS_API_KEY: " BROWSERLESS_API_KEY; echo
+export BROWSERLESS_API_KEY
 npm run startup:check
 
 # Windows PowerShell
-$env:BROWSERLESS_API_KEY='your-api-key-here'
+$env:BROWSERLESS_API_KEY = Read-Host "BROWSERLESS_API_KEY"
 npm run startup:check
 ```
 
@@ -258,7 +307,10 @@ See [Memory/README.md](Memory/README.md) for details.
 |----------|---------|
 | [AGENT_ROADMAP.md](AGENT_ROADMAP.md) | Implementation phases + progress |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design + patterns |
+| [docs/CICD.md](docs/CICD.md) | CI gates + branch protection guidance |
 | [docs/CODE-QUALITY.md](docs/CODE-QUALITY.md) | Quality standards + benchmarks |
+| [docs/VNEXT_FEATURES.md](docs/VNEXT_FEATURES.md) | Source of truth for intentional next-version scope |
+| [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | Release hardening and sign-off steps |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | PR workflow + code review checklist |
 | [Memory/README.md](Memory/README.md) | Memory persistence API |
 
@@ -266,7 +318,7 @@ See [Memory/README.md](Memory/README.md) for details.
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| 5 core tools | ✅ | Terminal, WebBrowser, Calculator, Clock, Browserless |
+| 8 core tools | ✅ | Terminal, WebBrowser, Calculator, DocumentScraper, Clock, Browserless, AskUser, RAG |
 | Biome format + lint | ✅ | CI gate, auto-fix on save |
 | Jest test suite | ✅ | 80% coverage minimum |
 | SQLite memory | ✅ | Task history, patterns, rules |
@@ -286,7 +338,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 ## License
 
-MIT — See LICENSE file
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties) — See LICENSE file.
+Original Author: Shawna Pakbin
 
 ## Contact
 

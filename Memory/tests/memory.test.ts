@@ -18,13 +18,7 @@ describe("MemoryStore", () => {
 
   test("should record a tool call", async () => {
     const taskId = await memory.createTaskRun("test", "trace-123");
-    await memory.recordToolCall(
-      taskId,
-      "test_tool",
-      { input: "test" },
-      { output: "result" },
-      true
-    );
+    await memory.recordToolCall(taskId, "test_tool", { input: "test" }, { output: "result" }, true);
     // Verify by querying (would need additional getters in production)
     expect(taskId).toBeTruthy();
   });

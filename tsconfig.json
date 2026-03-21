@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -24,6 +24,18 @@
       "@shared/*": ["shared/*"]
     }
   },
-  "include": ["Terminal/src/**/*", "WebBrowser/src/**/*", "Calculator/src/**/*", "Clock/src/**/*", "Browserless/src/**/*", "Memory/src/**/*", "testing/**/*"],
+  "include": [
+    "shared/**/*.ts",
+    "Terminal/src/**/*",
+    "WebBrowser/src/**/*",
+    "Calculator/src/**/*",
+    "DocumentScraper/src/**/*",
+    "Clock/src/**/*",
+    "Browserless/src/**/*",
+    "AskUser/src/**/*",
+    "RAG/src/**/*",
+    "Memory/src/**/*",
+    "testing/**/*"
+  ],
   "exclude": ["node_modules", "dist", "**/tests", "**/*.test.ts", "coverage"]
 }

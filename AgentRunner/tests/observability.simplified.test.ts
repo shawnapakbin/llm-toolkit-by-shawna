@@ -1,12 +1,12 @@
-import { AgentRunner, ExecutionMode } from "../src/runner";
-import { ToolRegistry, ToolMetadata, ToolStatus } from "../src/registry";
-import { Logger, setLogger } from "../../Observability/src/logger";
+import { type LogEntry, Logger, setLogger } from "../../Observability/src/logger";
 import { MetricsRegistry, setRegistry } from "../../Observability/src/metrics";
 import { Tracer, setTracer } from "../../Observability/src/tracer";
+import { type ToolMetadata, ToolRegistry, ToolStatus } from "../src/registry";
+import { AgentRunner, ExecutionMode } from "../src/runner";
 
 /**
  * Observability Integration Tests
- * 
+ *
  * Validates that observability (metrics, logs, traces) are properly recorded
  * during workflow execution.
  */
@@ -21,7 +21,7 @@ describe("ObservabilityIntegration", () => {
     logger = new Logger();
     metricsRegistry = new MetricsRegistry();
     tracer = new Tracer();
-    
+
     setLogger(logger);
     setRegistry(metricsRegistry);
     setTracer(tracer);
@@ -82,13 +82,15 @@ describe("ObservabilityIntegration", () => {
     await runner.executeWorkflow(workflow);
 
     const metricsJSON = metricsRegistry.exportJSON();
-    const execCounter = metricsJSON["workflow_executions_total"];
-    
+    const execCounter = metricsJSON["workflow_executions_total"] as
+      | { labeled?: Array<{ labels: Record<string, string> }> }
+      | undefined;
+
     expect(execCounter).toBeDefined();
     expect(execCounter?.labeled).toContainEqual(
       expect.objectContaining({
         labels: { workflowId: "test-workflow-1", status: "success" },
-      })
+      }),
     );
   });
 
@@ -117,8 +119,9 @@ describe("ObservabilityIntegration", () => {
     await runner.executeWorkflow(workflow);
 
     const metricsJSON = metricsRegistry.exportJSON();
-    expect(metricsJSON["workflow_duration_ms"]).toBeDefined();
-    expect(metricsJSON["workflow_duration_ms"].type).toBe("histogram");
+    const durationMetric = metricsJSON["workflow_duration_ms"] as { type?: string } | undefined;
+    expect(durationMetric).toBeDefined();
+    expect(durationMetric?.type).toBe("histogram");
   });
 
   it("creates workflow trace with step spans", async () => {
@@ -147,10 +150,10 @@ describe("ObservabilityIntegration", () => {
 
     const traces = tracer.getAllTraces();
     const workflowTrace = traces.find((t) => t.workflowName === "Trace Workflow");
-    
+
     expect(workflowTrace).toBeDefined();
     expect(workflowTrace?.spans.length).toBeGreaterThan(0);
-    
+
     const stepSpans = workflowTrace?.spans.filter((s) => s.name.startsWith("step-"));
     expect(stepSpans?.length).toBeGreaterThan(0);
   });
@@ -187,17 +190,19 @@ describe("ObservabilityIntegration", () => {
     await runner.executeWorkflow(workflow);
 
     const metricsJSON = metricsRegistry.exportJSON();
-    const stepCounter = metricsJSON["workflow_step_executions_total"];
-    
+    const stepCounter = metricsJSON["workflow_step_executions_total"] as
+      | { labeled?: Array<{ labels: Record<string, string> }> }
+      | undefined;
+
     expect(stepCounter?.labeled).toContainEqual(
       expect.objectContaining({
         labels: { toolId: "tool1", status: "success" },
-      })
+      }),
     );
     expect(stepCounter?.labeled).toContainEqual(
       expect.objectContaining({
         labels: { toolId: "tool2", status: "success" },
-      })
+      }),
     );
   });
 
@@ -207,9 +212,9 @@ describe("ObservabilityIntegration", () => {
       json: async () => ({ ok: true, success: true }),
     });
 
-    const logs: any[] = [];
+    const logs: LogEntry[] = [];
     logger.addTransport({
-      write: (entry: any) => logs.push(entry),
+      write: (entry: LogEntry) => logs.push(entry),
     });
 
     const workflow = {
@@ -232,7 +237,7 @@ describe("ObservabilityIntegration", () => {
 
     const workflowLogs = logs.filter((l) => l.message.includes("log-test"));
     expect(workflowLogs.length).toBeGreaterThan(0);
-    
+
     // All logs should have trace ID
     workflowLogs.forEach((log) => {
       expect(log.traceId).toBeDefined();
@@ -261,12 +266,14 @@ describe("ObservabilityIntegration", () => {
     await runner.executeWorkflow(workflow);
 
     const metricsJSON = metricsRegistry.exportJSON();
-    const execCounter = metricsJSON["workflow_executions_total"];
-    
+    const execCounter = metricsJSON["workflow_executions_total"] as
+      | { labeled?: Array<{ labels: Record<string, string> }> }
+      | undefined;
+
     expect(execCounter?.labeled).toContainEqual(
       expect.objectContaining({
         labels: { workflowId: "failure-test", status: "error" },
-      })
+      }),
     );
   });
 });

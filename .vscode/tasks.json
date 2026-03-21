@@ -62,6 +62,16 @@
 				"cwd": "${workspaceFolder}/Terminal"
 			},
 			"group": "build"
+		},
+		{
+			"label": "mcp-test-only",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"test:mcp"
+			],
+			"isBackground": false
 		}
 	]
 }

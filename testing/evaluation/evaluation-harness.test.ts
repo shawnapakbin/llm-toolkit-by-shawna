@@ -4,7 +4,13 @@ import { runEvaluation } from "./harness";
 
 describe("Evaluation Harness", () => {
   const resultsPath = path.join(process.cwd(), "testing", "evaluation", "results", "latest.json");
-  const baselinePath = path.join(process.cwd(), "testing", "evaluation", "baselines", "default-baseline.json");
+  const baselinePath = path.join(
+    process.cwd(),
+    "testing",
+    "evaluation",
+    "baselines",
+    "default-baseline.json",
+  );
   let originalBaseline = "";
 
   beforeAll(() => {

@@ -1,8 +1,4 @@
-import {
-  isAllowedContentType,
-  isBlockedHostname,
-  validateTargetUrl,
-} from "../src/policy";
+import { isAllowedContentType, isBlockedHostname, validateTargetUrl } from "../src/policy";
 
 describe("WebBrowser policy hardening", () => {
   test("blocks localhost and private hosts", () => {

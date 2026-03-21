@@ -31,6 +31,7 @@
     "id": "eval-file-edit-2-negative-empty-command",
     "name": "File Edit - Invalid Input (empty command)",
     "category": "file-edit",
+    "expectedSuccess": false,
     "workflow": {
       "id": "eval-file-edit-2-negative",
       "name": "File Edit - Negative Test",
@@ -75,6 +76,7 @@
     "id": "eval-shell-build-2-negative-invalid-input",
     "name": "Shell Build - Invalid Input",
     "category": "shell-build",
+    "expectedSuccess": false,
     "workflow": {
       "id": "eval-shell-build-2-negative",
       "name": "Shell Build - Negative Test",
@@ -115,6 +117,7 @@
     "id": "eval-web-summary-2-negative-invalid-url",
     "name": "Web Retrieval - Invalid URL",
     "category": "web-retrieval",
+    "expectedSuccess": false,
     "workflow": {
       "id": "eval-web-summary-2-negative",
       "name": "Web Retrieval - Negative Test",
@@ -135,6 +138,7 @@
     "id": "eval-web-summary-3-negative-missing-url",
     "name": "Web Retrieval - Missing URL",
     "category": "web-retrieval",
+    "expectedSuccess": false,
     "workflow": {
       "id": "eval-web-summary-3-negative",
       "name": "Web Retrieval - Missing URL",
@@ -175,6 +179,7 @@
     "id": "eval-math-2-negative-empty-expression",
     "name": "Math Engineering - Empty Expression",
     "category": "math-engineering",
+    "expectedSuccess": false,
     "workflow": {
       "id": "eval-math-2-negative",
       "name": "Math Engineering - Negative Test",
@@ -195,6 +200,7 @@
     "id": "eval-math-3-negative-missing-expression",
     "name": "Math Engineering - Missing Expression",
     "category": "math-engineering",
+    "expectedSuccess": false,
     "workflow": {
       "id": "eval-math-3-negative",
       "name": "Math Engineering - Missing Expression",

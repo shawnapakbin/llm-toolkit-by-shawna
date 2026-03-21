@@ -43,7 +43,11 @@ describe("DocumentScraper policy", () => {
 
   test("content type allowlist includes pdf and docx", () => {
     expect(isAllowedContentType("application/pdf")).toBe(true);
-    expect(isAllowedContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")).toBe(true);
+    expect(
+      isAllowedContentType(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ),
+    ).toBe(true);
     expect(isAllowedContentType("image/png")).toBe(false);
   });
 

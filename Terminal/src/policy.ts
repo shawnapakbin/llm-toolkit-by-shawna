@@ -1,12 +1,8 @@
 import path from "path";
 
-export const DEFAULT_MAX_OUTPUT_CHARS = Number(
-  process.env.TERMINAL_MAX_OUTPUT_CHARS ?? 50000
-);
+export const DEFAULT_MAX_OUTPUT_CHARS = Number(process.env.TERMINAL_MAX_OUTPUT_CHARS ?? 50000);
 
-export const WORKSPACE_ROOT = path.resolve(
-  process.env.TERMINAL_WORKSPACE_ROOT ?? process.cwd()
-);
+export const WORKSPACE_ROOT = path.resolve(process.env.TERMINAL_WORKSPACE_ROOT ?? process.cwd());
 
 export const DENY_PATTERNS: RegExp[] = [
   /(^|\s)rm\s+-rf(\s|$)/i,
@@ -24,7 +20,7 @@ export function isCommandBlocked(command: string): boolean {
 
 export function resolveSafeCwd(
   workspaceRoot: string,
-  inputCwd?: string
+  inputCwd?: string,
 ): { ok: true; cwd: string } | { ok: false; message: string } {
   if (!inputCwd) {
     return { ok: true, cwd: workspaceRoot };
@@ -32,8 +28,7 @@ export function resolveSafeCwd(
 
   const resolved = path.resolve(workspaceRoot, inputCwd);
   const relative = path.relative(workspaceRoot, resolved);
-  const outsideRoot =
-    relative.startsWith("..") || path.isAbsolute(relative);
+  const outsideRoot = relative.startsWith("..") || path.isAbsolute(relative);
 
   if (outsideRoot) {
     return {

@@ -47,20 +47,23 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
   });
 });
 
-app.post("/tools/save_parsed_data_csv", async (req: Request<unknown, unknown, ExportRequest>, res: Response) => {
-  const { filename, subfolder, headers, rows, append } = req.body || {};
+app.post(
+  "/tools/save_parsed_data_csv",
+  async (req: Request<unknown, unknown, ExportRequest>, res: Response) => {
+    const { filename, subfolder, headers, rows, append } = req.body || {};
 
-  if (!Array.isArray(headers) || !Array.isArray(rows)) {
-    res.status(400).json({
-      success: false,
-      error: "headers and rows are required arrays.",
-    });
-    return;
-  }
+    if (!Array.isArray(headers) || !Array.isArray(rows)) {
+      res.status(400).json({
+        success: false,
+        error: "headers and rows are required arrays.",
+      });
+      return;
+    }
 
-  const result = await exportParsedDataToCsv({ filename, subfolder, headers, rows, append });
-  res.status(result.success ? 200 : 400).json(result);
-});
+    const result = await exportParsedDataToCsv({ filename, subfolder, headers, rows, append });
+    res.status(result.success ? 200 : 400).json(result);
+  },
+);
 
 export { app };
 

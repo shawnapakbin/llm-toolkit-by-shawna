@@ -8,10 +8,7 @@ export function getDocumentsDirectory(): string {
     return path.resolve(process.env.CSV_EXPORT_ROOT.trim());
   }
 
-  const homeDir =
-    process.env.USERPROFILE ||
-    process.env.HOME ||
-    os.homedir();
+  const homeDir = process.env.USERPROFILE || process.env.HOME || os.homedir();
 
   return path.resolve(homeDir, "Documents");
 }
@@ -29,7 +26,9 @@ export function normalizeCsvFilename(filename?: string): string {
   return trimmed.toLowerCase().endsWith(".csv") ? trimmed : `${trimmed}.csv`;
 }
 
-export function validateSubfolder(subfolder?: string): { valid: true } | { valid: false; error: string } {
+export function validateSubfolder(
+  subfolder?: string,
+): { valid: true } | { valid: false; error: string } {
   if (!subfolder || !subfolder.trim()) {
     return { valid: true };
   }
@@ -48,14 +47,19 @@ export function validateSubfolder(subfolder?: string): { valid: true } | { valid
   return { valid: true };
 }
 
-export function resolveCsvOutputPath(filename?: string, subfolder?: string): {
-  ok: true;
-  documentsRoot: string;
-  outputPath: string;
-} | {
-  ok: false;
-  error: string;
-} {
+export function resolveCsvOutputPath(
+  filename?: string,
+  subfolder?: string,
+):
+  | {
+      ok: true;
+      documentsRoot: string;
+      outputPath: string;
+    }
+  | {
+      ok: false;
+      error: string;
+    } {
   const subfolderCheck = validateSubfolder(subfolder);
   if (!subfolderCheck.valid) {
     return { ok: false, error: subfolderCheck.error };
@@ -64,9 +68,7 @@ export function resolveCsvOutputPath(filename?: string, subfolder?: string): {
   const documentsRoot = getDocumentsDirectory();
   const normalizedFile = normalizeCsvFilename(filename);
 
-  const baseDir = subfolder?.trim()
-    ? path.resolve(documentsRoot, subfolder.trim())
-    : documentsRoot;
+  const baseDir = subfolder?.trim() ? path.resolve(documentsRoot, subfolder.trim()) : documentsRoot;
 
   const relative = path.relative(documentsRoot, baseDir);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {

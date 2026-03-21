@@ -2,7 +2,7 @@
  * Tool Registry Tests
  */
 
-import { ToolRegistry, ToolCapability, ToolStatus, registerDefaultTools } from "../src/registry";
+import { ToolCapability, ToolRegistry, ToolStatus, registerDefaultTools } from "../src/registry";
 
 describe("ToolRegistry", () => {
   let registry: ToolRegistry;
@@ -62,8 +62,8 @@ describe("ToolRegistry", () => {
 
       const allTools = registry.getAllTools();
       expect(allTools).toHaveLength(2);
-      expect(allTools.map(t => t.id)).toContain("tool1");
-      expect(allTools.map(t => t.id)).toContain("tool2");
+      expect(allTools.map((t) => t.id)).toContain("tool1");
+      expect(allTools.map((t) => t.id)).toContain("tool2");
     });
 
     test("returns undefined for non-existent tool", () => {
@@ -124,9 +124,9 @@ describe("ToolRegistry", () => {
     test("filters healthy tools only", () => {
       const healthyTools = registry.getHealthyTools();
       expect(healthyTools).toHaveLength(2);
-      expect(healthyTools.map(t => t.id)).toContain("read-tool");
-      expect(healthyTools.map(t => t.id)).toContain("compute-tool");
-      expect(healthyTools.map(t => t.id)).not.toContain("execute-tool");
+      expect(healthyTools.map((t) => t.id)).toContain("read-tool");
+      expect(healthyTools.map((t) => t.id)).toContain("compute-tool");
+      expect(healthyTools.map((t) => t.id)).not.toContain("execute-tool");
     });
   });
 
@@ -174,7 +174,7 @@ describe("ToolRegistry", () => {
       const allTools = registry.getAllTools();
       expect(allTools.length).toBeGreaterThanOrEqual(5);
 
-      const toolIds = allTools.map(t => t.id);
+      const toolIds = allTools.map((t) => t.id);
       expect(toolIds).toContain("terminal");
       expect(toolIds).toContain("webbrowser");
       expect(toolIds).toContain("calculator");

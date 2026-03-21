@@ -1,6 +1,6 @@
 /**
  * Memory Store - Persistent storage for workflow execution history
- * 
+ *
  * Uses SQLite to store:
  * - Workflow run history
  * - Step execution results
@@ -8,10 +8,10 @@
  * - Successful patterns for retrieval
  */
 
-import Database from "better-sqlite3";
-import type { WorkflowResult, StepResult, Workflow } from "./runner";
-import path from "path";
 import fs from "fs";
+import path from "path";
+import Database from "better-sqlite3";
+import type { StepResult, Workflow, WorkflowResult, WorkflowStep } from "./runner";
 
 /**
  * Run record stored in database
@@ -56,7 +56,7 @@ export interface SessionContext {
   sessionId: string;
   startedAt: Date;
   lastActivityAt: Date;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
 }
 
 /**
@@ -152,7 +152,7 @@ export class MemoryStore {
   /**
    * Store a workflow run result
    */
-  storeRun(workflow: Workflow, result: WorkflowResult, metadata?: Record<string, any>): number {
+  storeRun(workflow: Workflow, result: WorkflowResult, metadata?: Record<string, unknown>): number {
     const stmt = this.db.prepare(`
       INSERT INTO runs (
         workflow_id, workflow_name, trace_id, success, duration_ms,
@@ -169,19 +169,26 @@ export class MemoryStore {
       result.startedAt.toISOString(),
       result.completedAt.toISOString(),
       result.error || null,
-      metadata ? JSON.stringify(metadata) : null
+      metadata ? JSON.stringify(metadata) : null,
     );
 
     const runId = info.lastInsertRowid as number;
 
     // Store step results
     for (const step of result.steps) {
-      this.storeStep(runId, step, workflow.steps.find(s => s.id === step.stepId));
+      this.storeStep(
+        runId,
+        step,
+        workflow.steps.find((s) => s.id === step.stepId),
+      );
     }
 
     // Update pattern if successful
     if (result.success) {
-      this.updatePattern(workflow.id, result.steps.map(s => s.toolId));
+      this.updatePattern(
+        workflow.id,
+        result.steps.map((s) => s.toolId),
+      );
     }
 
     return runId;
@@ -190,7 +197,7 @@ export class MemoryStore {
   /**
    * Store a step execution result
    */
-  private storeStep(runId: number, step: StepResult, stepDef?: any): void {
+  private storeStep(runId: number, step: StepResult, stepDef?: WorkflowStep): void {
     const stmt = this.db.prepare(`
       INSERT INTO steps (
         run_id, step_id, tool_id, success, error_code, error_message,
@@ -212,7 +219,7 @@ export class MemoryStore {
       step.startedAt.toISOString(),
       step.completedAt.toISOString(),
       stepDef?.input ? JSON.stringify(stepDef.input) : null,
-      step.data ? JSON.stringify(step.data) : null
+      step.data ? JSON.stringify(step.data) : null,
     );
   }
 
@@ -223,66 +230,88 @@ export class MemoryStore {
     const sequence = toolSequence.join(",");
     const patternName = `pattern_${workflowId}_${sequence.replace(/,/g, "_")}`;
 
-    const existing = this.db.prepare(`
+    const existing = this.db
+      .prepare(`
       SELECT id, success_count FROM patterns WHERE workflow_id = ? AND tool_sequence = ?
-    `).get(workflowId, sequence) as { id: number; success_count: number } | undefined;
+    `)
+      .get(workflowId, sequence) as { id: number; success_count: number } | undefined;
 
     if (existing) {
-      this.db.prepare(`
+      this.db
+        .prepare(`
         UPDATE patterns SET success_count = ?, last_used_at = ? WHERE id = ?
-      `).run(existing.success_count + 1, new Date().toISOString(), existing.id);
+      `)
+        .run(existing.success_count + 1, new Date().toISOString(), existing.id);
     } else {
-      this.db.prepare(`
+      this.db
+        .prepare(`
         INSERT INTO patterns (pattern_name, workflow_id, tool_sequence, last_used_at)
         VALUES (?, ?, ?, ?)
-      `).run(patternName, workflowId, sequence, new Date().toISOString());
+      `)
+        .run(patternName, workflowId, sequence, new Date().toISOString());
     }
   }
 
   /**
    * Get run history for a workflow
    */
-  getRunHistory(workflowId: string, limit: number = 50): RunRecord[] {
-    return this.db.prepare(`
+  getRunHistory(workflowId: string, limit = 50): RunRecord[] {
+    return this.db
+      .prepare(`
       SELECT * FROM runs WHERE workflow_id = ?
       ORDER BY started_at DESC LIMIT ?
-    `).all(workflowId, limit) as RunRecord[];
+    `)
+      .all(workflowId, limit) as RunRecord[];
   }
 
   /**
    * Get successful runs for a workflow
    */
-  getSuccessfulRuns(workflowId: string, limit: number = 20): RunRecord[] {
-    return this.db.prepare(`
+  getSuccessfulRuns(workflowId: string, limit = 20): RunRecord[] {
+    return this.db
+      .prepare(`
       SELECT * FROM runs WHERE workflow_id = ? AND success = 1
       ORDER BY started_at DESC LIMIT ?
-    `).all(workflowId, limit) as RunRecord[];
+    `)
+      .all(workflowId, limit) as RunRecord[];
   }
 
   /**
    * Get steps for a run
    */
   getRunSteps(runId: number): StepRecord[] {
-    return this.db.prepare(`
+    return this.db
+      .prepare(`
       SELECT * FROM steps WHERE run_id = ? ORDER BY started_at ASC
-    `).all(runId) as StepRecord[];
+    `)
+      .all(runId) as StepRecord[];
   }
 
   /**
    * Get most successful patterns for a workflow
    */
-  getSuccessfulPatterns(workflowId: string, limit: number = 10): Array<{
+  getSuccessfulPatterns(
+    workflowId: string,
+    limit = 10,
+  ): Array<{
     pattern_name: string;
     tool_sequence: string;
     success_count: number;
     last_used_at: string;
   }> {
-    return this.db.prepare(`
+    return this.db
+      .prepare(`
       SELECT pattern_name, tool_sequence, success_count, last_used_at
       FROM patterns WHERE workflow_id = ?
       ORDER BY success_count DESC, last_used_at DESC
       LIMIT ?
-    `).all(workflowId, limit) as any[];
+    `)
+      .all(workflowId, limit) as Array<{
+      pattern_name: string;
+      tool_sequence: string;
+      success_count: number;
+      last_used_at: string;
+    }>;
   }
 
   /**
@@ -295,16 +324,25 @@ export class MemoryStore {
     totalSteps: number;
     avgDurationMs: number;
   } {
-    const stats = this.db.prepare(`
+    const stats = this.db
+      .prepare(`
       SELECT
         COUNT(*) as total_runs,
         SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_runs,
         SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed_runs,
         AVG(duration_ms) as avg_duration_ms
       FROM runs
-    `).get() as any;
+    `)
+      .get() as {
+      total_runs: number;
+      successful_runs: number;
+      failed_runs: number;
+      avg_duration_ms: number;
+    };
 
-    const stepCount = this.db.prepare(`SELECT COUNT(*) as count FROM steps`).get() as any;
+    const stepCount = this.db.prepare(`SELECT COUNT(*) as count FROM steps`).get() as {
+      count: number;
+    };
 
     return {
       totalRuns: stats.total_runs || 0,
@@ -318,7 +356,7 @@ export class MemoryStore {
   /**
    * Create a session context
    */
-  createSession(sessionId: string, initialContext?: Record<string, any>): SessionContext {
+  createSession(sessionId: string, initialContext?: Record<string, unknown>): SessionContext {
     const session: SessionContext = {
       sessionId,
       startedAt: new Date(),
@@ -343,7 +381,7 @@ export class MemoryStore {
   /**
    * Update session context
    */
-  updateSession(sessionId: string, updates: Record<string, any>): void {
+  updateSession(sessionId: string, updates: Record<string, unknown>): void {
     const session = this.sessions.get(sessionId);
     if (session) {
       session.context = { ...session.context, ...updates };
@@ -361,7 +399,7 @@ export class MemoryStore {
   /**
    * Clean up old sessions (older than timeoutMs)
    */
-  cleanupSessions(timeoutMs: number = 3600000): number {
+  cleanupSessions(timeoutMs = 3600000): number {
     const now = Date.now();
     let cleaned = 0;
 

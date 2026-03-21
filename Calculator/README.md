@@ -227,7 +227,7 @@ Add this configuration to your LM Studio `mcp.json`:
   "mcpServers": {
     "calculator": {
       "command": "node",
-      "args": ["<REPO_ROOT>/Calculator/dist/mcp-server.js"],
+      "args": ["Calculator/dist/mcp-server.js"],
       "env": {
         "CALCULATOR_DEFAULT_PRECISION": "12",
         "CALCULATOR_MAX_PRECISION": "20"
@@ -314,4 +314,5 @@ npm test             # Run tests (if available)
 
 ## License
 
-MIT
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties). See ../LICENSE.
+Original Author: Shawna Pakbin

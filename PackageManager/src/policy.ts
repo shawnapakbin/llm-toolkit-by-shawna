@@ -9,8 +9,16 @@ export interface ValidationResult {
 const UNTRUSTED_REGISTRIES = ["registry.npmjs.com", "pypi.org", "crates.io"];
 const BLOCKED_PACKAGES = ["rm -rf", "eval", "__proto__", "constructor"];
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function getPackageManagerWorkspaceRoot(): string {
-  return process.env.PACKAGE_MANAGER_WORKSPACE_ROOT || process.env.FILE_EDITOR_WORKSPACE_ROOT || process.cwd();
+  return (
+    process.env.PACKAGE_MANAGER_WORKSPACE_ROOT ||
+    process.env.FILE_EDITOR_WORKSPACE_ROOT ||
+    process.cwd()
+  );
 }
 
 /**
@@ -31,10 +39,10 @@ export function validateWorkspacePath(workspacePath: string): ValidationResult {
     }
 
     return { valid: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       valid: false,
-      error: error.message,
+      error: getErrorMessage(error),
     };
   }
 }
@@ -45,7 +53,7 @@ export function validateWorkspacePath(workspacePath: string): ValidationResult {
 export function validatePackageNames(packages: string[]): ValidationResult {
   for (const pkg of packages) {
     // Check for suspicious patterns
-    if (BLOCKED_PACKAGES.some(blocked => pkg.includes(blocked))) {
+    if (BLOCKED_PACKAGES.some((blocked) => pkg.includes(blocked))) {
       return {
         valid: false,
         reason: `Package name contains blocked pattern: ${pkg}`,
@@ -76,7 +84,7 @@ export function validatePackageNames(packages: string[]): ValidationResult {
  * Check if package is from untrusted registry
  */
 export function isFromUntrustedRegistry(packageUrl: string): boolean {
-  return UNTRUSTED_REGISTRIES.some(registry => packageUrl.includes(registry));
+  return UNTRUSTED_REGISTRIES.some((registry) => packageUrl.includes(registry));
 }
 
 /**
@@ -96,9 +104,12 @@ export function requiresElevatedPermissions(operation: string, isGlobal: boolean
 /**
  * Validate manifest file exists
  */
-export async function manifestFileExists(manifestFile: string, cwd: string): Promise<ValidationResult> {
+export async function manifestFileExists(
+  manifestFile: string,
+  cwd: string,
+): Promise<ValidationResult> {
   try {
-    const fs = await import("fs").then(m => m.promises);
+    const fs = await import("fs").then((m) => m.promises);
     const filePath = path.join(cwd, manifestFile);
 
     try {
@@ -110,10 +121,10 @@ export async function manifestFileExists(manifestFile: string, cwd: string): Pro
         error: `Manifest file not found: ${manifestFile}`,
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       valid: false,
-      error: error.message,
+      error: getErrorMessage(error),
     };
   }
 }

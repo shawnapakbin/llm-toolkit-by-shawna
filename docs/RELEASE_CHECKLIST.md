@@ -2,6 +2,12 @@
 
 ## Pre-Release Validation
 
+### 0. Version Scope Marker ✅
+- [ ] Confirm `docs/VNEXT_FEATURES.md` exists and lists all intentional next-version features
+- [ ] Confirm any new feature-level directory/file set is represented in `docs/VNEXT_FEATURES.md`
+- [ ] Run `npm run verify:vnext-scope` and confirm it passes
+- [ ] Confirm release PR title/labels reflect vNext scope (for example: `feat(vnext): ...`)
+
 ### 1. Code Quality ✅
 - [ ] Run `npm run check:ci` (format + lint + import organization)
 - [ ] Run `npm run type-check` (TypeScript strict mode)
@@ -24,6 +30,8 @@
   - Calculator/dist/
   - Clock/dist/
   - Browserless/dist/
+  - AskUser/dist/
+  - RAG/dist/
   - Memory/dist/
   - AgentRunner/dist/
   - Observability/dist/
@@ -33,6 +41,9 @@
 - [ ] All MCP binaries present (`dist/mcp-server.js`)
 - [ ] Environment variables validated
 - [ ] `mcp.json` configuration synchronized with README
+- [ ] Run `npm run test:mcp` and confirm MCP integration suites pass for AskUser, RAG, and Terminal
+- [ ] Run live gates (`npm run test:mcp:live` and `npm run test:mcp:live:matrix`) with `LMSTUDIO_LIVE_TEST=true`
+- [ ] Confirm matrix flow unloads all loaded LM Studio models before loading each target model
 
 ### 5. Evaluation & Regression ✅
 - [ ] Run `npm run eval:run`
@@ -154,6 +165,7 @@ npm outdated
 ```bash
 npm run verify:all && \
 npm run eval:drift && \
+test -f docs/VNEXT_FEATURES.md && \
 echo "✅ Ready for release"
 ```
 

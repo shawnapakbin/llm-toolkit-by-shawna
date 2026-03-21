@@ -2,13 +2,15 @@
 
 /**
  * Browserless Environment Preflight Checks
- * 
+ *
  * Validates Browserless configuration and environment before use.
  * Run this before starting the Browserless tool to ensure proper setup.
  */
 
+import path from "path";
 import dotenv from "dotenv";
 
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 dotenv.config();
 
 type CheckResult = {
@@ -20,32 +22,37 @@ type CheckResult = {
 
 const checks: CheckResult[] = [];
 
-function addCheck(name: string, status: "pass" | "warn" | "fail", message: string, details?: string): void {
+function addCheck(
+  name: string,
+  status: "pass" | "warn" | "fail",
+  message: string,
+  details?: string,
+): void {
   checks.push({ name, status, message, details });
 }
 
 // Check 1: API Key presence and format
-const apiKey = process.env.BROWSERLESS_API_KEY;
+const apiKey = process.env.BROWSERLESS_API_KEY || process.env.BROWSERLESS_API_TOKEN;
 if (!apiKey) {
   addCheck(
     "API Key",
     "fail",
-    "BROWSERLESS_API_KEY is not set",
-    "Set BROWSERLESS_API_KEY in .env or environment. Minimum 10 characters required."
+    "BROWSERLESS_API_KEY/BROWSERLESS_API_TOKEN is not set",
+    "Set BROWSERLESS_API_KEY in .env or set BROWSERLESS_API_KEY/BROWSERLESS_API_TOKEN in MCP env. Minimum 10 characters required.",
   );
 } else if (apiKey.length < 10) {
   addCheck(
     "API Key",
     "fail",
     "BROWSERLESS_API_KEY is too short",
-    `Current length: ${apiKey.length}. Minimum 10 characters required.`
+    `Current length: ${apiKey.length}. Minimum 10 characters required.`,
   );
 } else {
   addCheck(
     "API Key",
     "pass",
     `API Key configured (${apiKey.length} characters)`,
-    "Key is masked for security"
+    "Key is masked for security",
   );
 }
 
@@ -57,21 +64,21 @@ if (region && !validRegions.includes(region)) {
     "Region",
     "warn",
     `Unknown region: ${region}`,
-    `Valid regions: ${validRegions.join(", ")}. Will default to production-sfo if API call fails.`
+    `Valid regions: ${validRegions.join(", ")}. Will default to production-sfo if API call fails.`,
   );
 } else if (!region) {
   addCheck(
     "Region",
     "pass",
     "Using default region: production-sfo",
-    "Set BROWSERLESS_DEFAULT_REGION to override (production-sfo, production-lon, production-fra, local)"
+    "Set BROWSERLESS_DEFAULT_REGION to override (production-sfo, production-lon, production-fra, local)",
   );
 } else {
   addCheck(
     "Region",
     "pass",
     `Region configured: ${region}`,
-    "Region selection affects latency and data residency"
+    "Region selection affects latency and data residency",
   );
 }
 
@@ -88,28 +95,28 @@ if (timeoutStr) {
       "Timeout",
       "fail",
       `Invalid timeout value: ${timeoutStr}`,
-      "Must be a number (milliseconds). Will use default 180000ms (3 minutes)."
+      "Must be a number (milliseconds). Will use default 180000ms (3 minutes).",
     );
   } else if (timeout < MIN_TIMEOUT_MS) {
     addCheck(
       "Timeout",
       "warn",
       `Timeout too low: ${timeout}ms`,
-      `Minimum recommended: ${MIN_TIMEOUT_MS}ms. Large pages may fail.`
+      `Minimum recommended: ${MIN_TIMEOUT_MS}ms. Large pages may fail.`,
     );
   } else if (timeout > MAX_TIMEOUT_MS) {
     addCheck(
       "Timeout",
       "warn",
       `Timeout very high: ${timeout}ms`,
-      `Maximum allowed: ${MAX_TIMEOUT_MS}ms. Consider reducing to prevent hung requests.`
+      `Maximum allowed: ${MAX_TIMEOUT_MS}ms. Consider reducing to prevent hung requests.`,
     );
   } else {
     addCheck(
       "Timeout",
       "pass",
       `Timeout configured: ${timeout}ms`,
-      `Default timeout for all Browserless operations. Range: ${MIN_TIMEOUT_MS}-${MAX_TIMEOUT_MS}ms.`
+      `Default timeout for all Browserless operations. Range: ${MIN_TIMEOUT_MS}-${MAX_TIMEOUT_MS}ms.`,
     );
   }
 } else {
@@ -117,7 +124,7 @@ if (timeoutStr) {
     "Timeout",
     "pass",
     `Using default timeout: ${DEFAULT_TIMEOUT_MS}ms`,
-    "Set BROWSERLESS_DEFAULT_TIMEOUT_MS to override (milliseconds)"
+    "Set BROWSERLESS_DEFAULT_TIMEOUT_MS to override (milliseconds)",
   );
 }
 
@@ -134,28 +141,28 @@ if (concurrencyStr) {
       "Concurrency",
       "fail",
       `Invalid concurrency value: ${concurrencyStr}`,
-      `Must be a number. Will use default ${DEFAULT_CONCURRENCY}.`
+      `Must be a number. Will use default ${DEFAULT_CONCURRENCY}.`,
     );
   } else if (concurrency < MIN_CONCURRENCY) {
     addCheck(
       "Concurrency",
       "warn",
       `Concurrency too low: ${concurrency}`,
-      `Minimum: ${MIN_CONCURRENCY}. Setting too low will throttle all requests.`
+      `Minimum: ${MIN_CONCURRENCY}. Setting too low will throttle all requests.`,
     );
   } else if (concurrency > MAX_CONCURRENCY) {
     addCheck(
       "Concurrency",
       "warn",
       `Concurrency very high: ${concurrency}`,
-      `Maximum recommended: ${MAX_CONCURRENCY}. May exceed API quota limits.`
+      `Maximum recommended: ${MAX_CONCURRENCY}. May exceed API quota limits.`,
     );
   } else {
     addCheck(
       "Concurrency",
       "pass",
       `Concurrency limit: ${concurrency}`,
-      `Maximum ${concurrency} parallel requests. Prevents quota exhaustion.`
+      `Maximum ${concurrency} parallel requests. Prevents quota exhaustion.`,
     );
   }
 } else {
@@ -163,7 +170,7 @@ if (concurrencyStr) {
     "Concurrency",
     "pass",
     `Using default concurrency: ${DEFAULT_CONCURRENCY}`,
-    "Set BROWSERLESS_CONCURRENCY_LIMIT to override (1-20 recommended)"
+    "Set BROWSERLESS_CONCURRENCY_LIMIT to override (1-20 recommended)",
   );
 }
 
@@ -172,41 +179,21 @@ const port = process.env.PORT;
 if (port) {
   const portNum = Number(port);
   if (Number.isNaN(portNum)) {
-    addCheck(
-      "Port",
-      "warn",
-      `Invalid PORT value: ${port}`,
-      "Will use default 3003"
-    );
+    addCheck("Port", "warn", `Invalid PORT value: ${port}`, "Will use default 3003");
   } else if (portNum < 1024) {
     addCheck(
       "Port",
       "warn",
       `Privileged port: ${portNum}`,
-      "Ports below 1024 require elevated permissions on Unix systems"
+      "Ports below 1024 require elevated permissions on Unix systems",
     );
   } else if (portNum > 65535) {
-    addCheck(
-      "Port",
-      "fail",
-      `Invalid port number: ${portNum}`,
-      "Port must be between 1 and 65535"
-    );
+    addCheck("Port", "fail", `Invalid port number: ${portNum}`, "Port must be between 1 and 65535");
   } else {
-    addCheck(
-      "Port",
-      "pass",
-      `Port configured: ${portNum}`,
-      "HTTP server will listen on this port"
-    );
+    addCheck("Port", "pass", `Port configured: ${portNum}`, "HTTP server will listen on this port");
   }
 } else {
-  addCheck(
-    "Port",
-    "pass",
-    "Using default port: 3003",
-    "Set PORT environment variable to override"
-  );
+  addCheck("Port", "pass", "Using default port: 3003", "Set PORT environment variable to override");
 }
 
 // Print results

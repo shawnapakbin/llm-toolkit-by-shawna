@@ -1,18 +1,18 @@
 /**
  * Clock Policy Tests
- * 
+ *
  * Unit tests for timezone and locale validation.
  */
 
 import {
-  isValidTimeZone,
-  normalizeLocale,
-  looksLikeIANATimezone,
-  isTimeZoneTooLong,
-  isLocaleTooLong,
-  MAX_TIMEZONE_LENGTH,
-  MAX_LOCALE_LENGTH,
   COMMON_TIMEZONES,
+  MAX_LOCALE_LENGTH,
+  MAX_TIMEZONE_LENGTH,
+  isLocaleTooLong,
+  isTimeZoneTooLong,
+  isValidTimeZone,
+  looksLikeIANATimezone,
+  normalizeLocale,
 } from "../src/policy";
 
 describe("Clock Policy", () => {

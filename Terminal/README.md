@@ -60,7 +60,7 @@ The tool also provides OS-specific command examples in the `os_specific_commands
 | List files | `dir` | `ls -la` |
 | List detailed | `dir /s` | `find . -type f` |
 | Check current dir | `cd` | `pwd` |
-| Change directory | `cd path\to\dir` | `cd path/to/dir` |
+| Change directory | `cd project\subdir` | `cd project/subdir` |
 | Copy file | `copy source dest` | `cp source dest` |
 | Delete file | `del file` | `rm file` |
 | Find files | `findstr /S pattern .` | `find . -name '*.ts'` |
@@ -92,7 +92,7 @@ Response:
   "mcpServers": {
     "terminal": {
       "command": "node",
-      "args": ["<REPO_ROOT>/Terminal/dist/mcp-server.js"],
+      "args": ["Terminal/dist/mcp-server.js"],
       "env": {
         "TERMINAL_DEFAULT_TIMEOUT_MS": "60000",
         "TERMINAL_MAX_TIMEOUT_MS": "120000"

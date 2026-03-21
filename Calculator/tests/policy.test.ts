@@ -1,18 +1,18 @@
 /**
  * Calculator Policy Tests
- * 
+ *
  * Unit tests for expression validation and calculation constraints.
  */
 
 import {
-  validatePrecision,
-  isValidExpression,
-  isExpressionTooLong,
-  hasUnsafePatterns,
   DEFAULT_PRECISION,
+  MAX_EXPRESSION_LENGTH,
   MAX_PRECISION,
   MIN_PRECISION,
-  MAX_EXPRESSION_LENGTH,
+  hasUnsafePatterns,
+  isExpressionTooLong,
+  isValidExpression,
+  validatePrecision,
 } from "../src/policy";
 
 describe("Calculator Policy", () => {
@@ -36,13 +36,13 @@ describe("Calculator Policy", () => {
 
     it("should use default for invalid values", () => {
       expect(validatePrecision(undefined)).toBe(DEFAULT_PRECISION);
-      expect(validatePrecision(NaN)).toBe(DEFAULT_PRECISION);
-      expect(validatePrecision(Infinity)).toBe(DEFAULT_PRECISION);
+      expect(validatePrecision(Number.NaN)).toBe(DEFAULT_PRECISION);
+      expect(validatePrecision(Number.POSITIVE_INFINITY)).toBe(DEFAULT_PRECISION);
     });
 
     it("should use custom default when provided", () => {
       expect(validatePrecision(undefined, 15)).toBe(15);
-      expect(validatePrecision(NaN, 8)).toBe(8);
+      expect(validatePrecision(Number.NaN, 8)).toBe(8);
     });
 
     it("should truncate decimal precision values", () => {
@@ -65,9 +65,9 @@ describe("Calculator Policy", () => {
     });
 
     it("should reject non-string inputs", () => {
-      expect(isValidExpression(null as any)).toBe(false);
-      expect(isValidExpression(123 as any)).toBe(false);
-      expect(isValidExpression({} as any)).toBe(false);
+      expect(isValidExpression(null as unknown as string)).toBe(false);
+      expect(isValidExpression(123 as unknown as string)).toBe(false);
+      expect(isValidExpression({} as unknown as string)).toBe(false);
     });
   });
 

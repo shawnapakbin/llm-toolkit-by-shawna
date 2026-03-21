@@ -49,7 +49,7 @@ The tool provides `os_specific_commands` with these keys:
 | `list_files` | `dir` | `ls -la` |
 | `list_files_detailed` | `dir /s` | `find . -type f` |
 | `current_dir` | `cd` | `pwd` |
-| `change_dir` | `cd path\to\dir` | `cd path/to/dir` |
+| `change_dir` | `cd project\subdir` | `cd project/subdir` |
 | `copy_file` | `copy source dest` | `cp source dest` |
 | `delete_file` | `del file` | `rm file` |
 | `find_files` | `findstr /S pattern .` | `find . -name '*.ts'` |
@@ -112,7 +112,7 @@ The tool provides `os_specific_commands` with these keys:
 ```json
 {
   "command": "ls -la src/",
-  "cwd": "/path/to/project"
+  "cwd": "./"
 }
 ```
 
@@ -175,7 +175,7 @@ Every call returns this JSON:
 |------|---------|----------|
 | List files | `dir` | `ls -la` |
 | Current directory | `cd` (shows path) | `pwd` |
-| Change directory | `cd path\to\dir` | `cd path/to/dir` |
+| Change directory | `cd project\subdir` | `cd project/subdir` |
 | Copy file | `copy file1 file2` | `cp file1 file2` |
 | Delete file | `del file` | `rm file` |
 | Run tests | `npm test` | `npm test` |

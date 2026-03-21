@@ -63,10 +63,19 @@ To run all quality gates locally before pushing:
 npm run verify:all
 ```
 
-This chains all quality gates plus evaluation:
-- `check:ci` → `type-check` → `test:ci` → `startup:check:strict` → `eval:run`
+This chains the release hardening gates:
+- `verify:vnext-scope` → `check:ci` → `type-check` → `test:ci` → `build` → `startup:check`
 
 **Expected duration**: 1-3 minutes depending on system performance
+
+## vNext Scope Governance
+
+To avoid confusion between intentional release features and unrelated drift:
+
+- Keep [docs/VNEXT_FEATURES.md](docs/VNEXT_FEATURES.md) as the source of truth for next-version scope.
+- Require PR authors to complete [.github/pull_request_template.md](../.github/pull_request_template.md) and explicitly mark whether the PR changes vNext scope.
+- If feature scope is added, require a matching update to [docs/VNEXT_FEATURES.md](docs/VNEXT_FEATURES.md) in the same PR.
+- CI now enforces this via `npm run verify:vnext-scope` on pull requests.
 
 ## Branch Protection Rules
 
@@ -85,10 +94,15 @@ Configure these settings in GitHub repository settings under **Settings → Bran
 - ✅ **Require branches to be up to date before merging**
 
 **Required status checks** (must all pass):
+- `vnext-scope` (vNext Scope Guard)
 - `biome` (Biome: Format & Lint)
 - `type-check` (TypeScript: Type Safety)
 - `test` (Jest: Tests & Coverage)
 - `build` (Build: Compile TypeScript)
+
+**Recommended additional required checks**:
+- `startup-check` (startup readiness validation)
+- `verify-all` (aggregated quality gate job, if configured in CI)
 
 #### 3. Additional Restrictions
 - ✅ **Require conversation resolution before merging**
@@ -168,7 +182,7 @@ npm run -w Terminal type-check
 npm run test:watch
 
 # Run specific test file
-npm test -- path/to/test.test.ts
+npm test -- testing/evaluation/evaluation-harness.test.ts
 
 # Debug coverage
 npm run test:ci -- --verbose

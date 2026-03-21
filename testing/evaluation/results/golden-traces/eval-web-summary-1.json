@@ -1,0 +1,17 @@
+{
+  "traceId": "1774060606314-4d86zqjv",
+  "workflowId": "eval-web-summary-1",
+  "workflowName": "Web Retrieval Simulation",
+  "status": "success",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "fetch-page",
+      "toolId": "webbrowser",
+      "success": true,
+      "retries": 0,
+      "durationMs": 0
+    }
+  ],
+  "generatedAt": "2026-03-21T02:36:46.314Z"
+}

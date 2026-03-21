@@ -28,7 +28,7 @@ Multi-ecosystem package management tool for Node.js, Python, Rust, Java, Go, and
 
 ```bash
 # Optional: Set workspace root (defaults to current directory)
-export PACKAGE_MANAGER_WORKSPACE_ROOT=/path/to/project
+export PACKAGE_MANAGER_WORKSPACE_ROOT="$(pwd)"
 
 # Optional: HTTP server port (defaults to 3012)
 export PORT=3012
@@ -77,9 +77,9 @@ Add to LM Studio `mcp.json`:
   "mcpServers": {
     "package-manager": {
       "command": "node",
-      "args": ["/path/to/PackageManager/dist/mcp-server.js"],
+      "args": ["PackageManager/dist/mcp-server.js"],
       "env": {
-        "PACKAGE_MANAGER_WORKSPACE_ROOT": "/path/to/your/project"
+        "PACKAGE_MANAGER_WORKSPACE_ROOT": "."
       }
     }
   }
@@ -380,4 +380,5 @@ PackageManager tool follows the dual-server pattern with shared handler logic:
 
 ## License
 
-MIT
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties). See ../LICENSE.
+Original Author: Shawna Pakbin

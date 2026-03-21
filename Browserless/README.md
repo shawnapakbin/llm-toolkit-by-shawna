@@ -37,7 +37,7 @@ A powerful browser automation tool that integrates [Browserless.io](https://brow
    Create a `.env` file in the `Browserless` directory:
    ```env
    # Required: Your Browserless API token
-   BROWSERLESS_API_KEY=your-api-token-here
+   BROWSERLESS_API_KEY=
    
    # Optional: Default region (production-sfo, production-lon, production-ams)
    BROWSERLESS_DEFAULT_REGION=production-sfo
@@ -69,9 +69,9 @@ Add this configuration to your LM Studio `mcp.json`:
   "mcpServers": {
     "browserless": {
       "command": "node",
-      "args": ["<REPO_ROOT>/Browserless/dist/mcp-server.js"],
+      "args": ["Browserless/dist/mcp-server.js"],
       "env": {
-        "BROWSERLESS_API_KEY": "your-api-token-here",
+        "BROWSERLESS_API_KEY": "",
         "BROWSERLESS_DEFAULT_REGION": "production-sfo",
         "BROWSERLESS_DEFAULT_TIMEOUT_MS": "30000",
         "BROWSERLESS_MAX_TIMEOUT_MS": "120000",
@@ -399,7 +399,7 @@ BROWSERLESS_CONCURRENCY_LIMIT=10
 Provide the API key via (in order of precedence):
 1. **Per-request**: Include `apiKey` parameter
 2. **Environment variable**: Set `BROWSERLESS_API_KEY` in `.env`
-3. **MCP configuration**: Set in the `env` section of `mcp.json`
+3. **MCP configuration**: Set `BROWSERLESS_API_KEY` (or `BROWSERLESS_API_TOKEN`) in the `env` section of `mcp.json`
 
 **Security Note**: Never commit API keys to version control.
 
@@ -463,10 +463,37 @@ const browser = await puppeteer.connect({ browserWSEndpoint: endpoint });
 
 ## Troubleshooting
 
-### API Key Errors
-- Ensure your API key is valid and active
-- Check environment variables are properly set
-- Verify you haven't exceeded plan limits
+### API Key Errors (HTTP 401)
+**Problem**: "HTTP 401: Invalid API key" even with correct API key
+
+**Solution**:
+- Ensure your API key is valid and active (get from https://browserless.io/account/)
+- Verify API key is set in ONE of:
+  - `BROWSERLESS_API_KEY` environment variable
+  - `BROWSERLESS_API_TOKEN` environment variable
+  - `apiKey` parameter in the tool call
+- Check that you haven't exceeded your plan's daily limits
+- Verify the key is being passed correctly and hasn't expired
+
+**Important for LLMs**: Request parameters should be **flat** (not nested). For example:
+```json
+// ✅ CORRECT
+{
+  "url": "https://example.com",
+  "fullPage": true,
+  "type": "png",
+  "waitForTimeout": 5000
+}
+
+// ❌ INCORRECT
+{
+  "url": "https://example.com",
+  "options": {
+    "fullPage": true,
+    "type": "png"
+  }
+}
+```
 
 ### Timeout Errors
 - Increase `timeoutMs` for slow-loading pages

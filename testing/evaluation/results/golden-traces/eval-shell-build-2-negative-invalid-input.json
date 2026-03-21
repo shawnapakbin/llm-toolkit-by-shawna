@@ -1,0 +1,19 @@
+{
+  "traceId": "1774060606313-erutaio9",
+  "workflowId": "eval-shell-build-2-negative",
+  "workflowName": "Shell Build - Negative Test",
+  "status": "error",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "missing-command",
+      "toolId": "terminal",
+      "success": false,
+      "retries": 0,
+      "durationMs": 0,
+      "errorCode": "INVALID_INPUT",
+      "errorMessage": "command required"
+    }
+  ],
+  "generatedAt": "2026-03-21T02:36:46.313Z"
+}

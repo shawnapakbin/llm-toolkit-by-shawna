@@ -27,7 +27,18 @@ export interface ScreenshotResult {
 
 export interface PDFOptions {
   url: string;
-  format?: "Letter" | "Legal" | "Tabloid" | "Ledger" | "A0" | "A1" | "A2" | "A3" | "A4" | "A5" | "A6";
+  format?:
+    | "Letter"
+    | "Legal"
+    | "Tabloid"
+    | "Ledger"
+    | "A0"
+    | "A1"
+    | "A2"
+    | "A3"
+    | "A4"
+    | "A5"
+    | "A6";
   landscape?: boolean;
   printBackground?: boolean;
   scale?: number;
@@ -107,7 +118,7 @@ export interface UnblockResult {
   success: boolean;
   data?: {
     html?: string;
-    cookies?: Array<any>;
+    cookies?: Array<Record<string, unknown>>;
     screenshot?: string;
     browserWSEndpoint?: string;
   };
@@ -120,15 +131,15 @@ export interface UnblockResult {
 
 export interface BQLOptions {
   query: string;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
   operationName?: string;
   replay?: boolean;
 }
 
 export interface BQLResult {
   success: boolean;
-  data?: any;
-  errors?: Array<any>;
+  data?: unknown;
+  errors?: Array<{ message: string }>;
   error?: string;
   metadata?: {
     timestamp: string;
@@ -138,13 +149,13 @@ export interface BQLResult {
 
 export interface FunctionOptions {
   code: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   timeout?: number;
 }
 
 export interface FunctionResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   metadata?: {
     timestamp: string;
@@ -154,7 +165,7 @@ export interface FunctionResult {
 
 export interface DownloadOptions {
   code: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   timeout?: number;
 }
 
@@ -190,7 +201,7 @@ export interface ExportResult {
 
 export interface PerformanceOptions {
   url: string;
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
   timeout?: number;
 }
 
@@ -203,7 +214,7 @@ export interface PerformanceResult {
       bestPractices?: number;
       seo?: number;
     };
-    metrics?: Record<string, any>;
+    metrics?: Record<string, unknown>;
   };
   error?: string;
   metadata?: {
@@ -215,13 +226,17 @@ export interface PerformanceResult {
 const DEFAULT_REGION = "production-sfo";
 const DEFAULT_TIMEOUT_MS = 30000;
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function getBaseUrl(region: string = DEFAULT_REGION): string {
   return `https://${region}.browserless.io`;
 }
 
 export async function takeScreenshot(
   config: BrowserlessConfig,
-  options: ScreenshotOptions
+  options: ScreenshotOptions,
 ): Promise<ScreenshotResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -240,12 +255,10 @@ export async function takeScreenshot(
       },
       body: JSON.stringify({
         url: options.url,
-        options: {
-          fullPage: options.fullPage ?? false,
-          type: options.type ?? "png",
-          quality: options.quality,
-          selector: options.selector,
-        },
+        fullPage: options.fullPage ?? false,
+        type: options.type ?? "png",
+        quality: options.quality,
+        selector: options.selector,
         waitForTimeout: options.waitForTimeout,
         waitForSelector: options.waitForSelector,
       }),
@@ -274,17 +287,17 @@ export async function takeScreenshot(
         format: options.type ?? "png",
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function generatePDF(
   config: BrowserlessConfig,
-  options: PDFOptions
+  options: PDFOptions,
 ): Promise<PDFResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -303,12 +316,10 @@ export async function generatePDF(
       },
       body: JSON.stringify({
         url: options.url,
-        options: {
-          format: options.format ?? "A4",
-          landscape: options.landscape ?? false,
-          printBackground: options.printBackground ?? true,
-          scale: options.scale ?? 1,
-        },
+        format: options.format ?? "A4",
+        landscape: options.landscape ?? false,
+        printBackground: options.printBackground ?? true,
+        scale: options.scale ?? 1,
         waitForTimeout: options.waitForTimeout,
         waitForSelector: options.waitForSelector,
       }),
@@ -336,17 +347,17 @@ export async function generatePDF(
         timestamp: new Date().toISOString(),
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function scrapePage(
   config: BrowserlessConfig,
-  options: ScrapeOptions
+  options: ScrapeOptions,
 ): Promise<ScrapeResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -382,7 +393,7 @@ export async function scrapePage(
       };
     }
 
-    const result = await response.json() as { data?: any };
+    const result = (await response.json()) as { data?: ScrapeResult["data"] };
 
     return {
       success: true,
@@ -392,17 +403,17 @@ export async function scrapePage(
         timestamp: new Date().toISOString(),
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function getContent(
   config: BrowserlessConfig,
-  options: ContentOptions
+  options: ContentOptions,
 ): Promise<ContentResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -437,7 +448,7 @@ export async function getContent(
       };
     }
 
-    const result = await response.json() as { data?: { html?: string; text?: string } };
+    const result = (await response.json()) as { data?: { html?: string; text?: string } };
 
     return {
       success: true,
@@ -449,17 +460,17 @@ export async function getContent(
         contentLength: result.data?.html?.length || 0,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function unblockPage(
   config: BrowserlessConfig,
-  options: UnblockOptions
+  options: UnblockOptions,
 ): Promise<UnblockResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -496,7 +507,7 @@ export async function unblockPage(
       };
     }
 
-    const result = await response.json() as { data?: any };
+    const result = (await response.json()) as { data?: UnblockResult["data"] };
 
     return {
       success: true,
@@ -506,17 +517,17 @@ export async function unblockPage(
         timestamp: new Date().toISOString(),
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function executeBQL(
   config: BrowserlessConfig,
-  options: BQLOptions
+  options: BQLOptions,
 ): Promise<BQLResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -554,13 +565,16 @@ export async function executeBQL(
       };
     }
 
-    const result = await response.json() as { data?: any; errors?: Array<{ message: string }> };
+    const result = (await response.json()) as {
+      data?: unknown;
+      errors?: Array<{ message: string }>;
+    };
 
     if (result.errors && result.errors.length > 0) {
       return {
         success: false,
         errors: result.errors,
-        error: result.errors.map((e: any) => e.message).join(", "),
+        error: result.errors.map((e) => e.message).join(", "),
       };
     }
 
@@ -572,17 +586,17 @@ export async function executeBQL(
         operationName: options.operationName,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function executeFunction(
   config: BrowserlessConfig,
-  options: FunctionOptions
+  options: FunctionOptions,
 ): Promise<FunctionResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = options.timeout || config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -618,7 +632,7 @@ export async function executeFunction(
       };
     }
 
-    const result = await response.json() as { data?: any };
+    const result = (await response.json()) as { data?: PerformanceResult["data"] };
 
     return {
       success: true,
@@ -628,17 +642,17 @@ export async function executeFunction(
         executionTimeMs,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function downloadFile(
   config: BrowserlessConfig,
-  options: DownloadOptions
+  options: DownloadOptions,
 ): Promise<DownloadResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = options.timeout || config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -675,7 +689,7 @@ export async function downloadFile(
     const contentType = response.headers.get("content-type") || "application/octet-stream";
     const contentDisposition = response.headers.get("content-disposition");
     let filename = "download";
-    
+
     if (contentDisposition) {
       const match = contentDisposition.match(/filename="?([^";\n]*)"?/i);
       if (match && match[1]) {
@@ -696,23 +710,23 @@ export async function downloadFile(
         fileSizeBytes: buffer.byteLength,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function exportPage(
   config: BrowserlessConfig,
-  options: ExportOptions
+  options: ExportOptions,
 ): Promise<ExportResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = options.timeout || config.timeoutMs || DEFAULT_TIMEOUT_MS;
   const baseUrl = getBaseUrl(region);
   let url = `${baseUrl}/export?token=${config.apiKey}&url=${encodeURIComponent(options.url)}`;
-  
+
   if (options.includeResources) {
     url += "&includeResources=true";
   }
@@ -753,17 +767,17 @@ export async function exportPage(
         contentSizeBytes: buffer.byteLength,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }
 
 export async function performanceLighthouse(
   config: BrowserlessConfig,
-  options: PerformanceOptions
+  options: PerformanceOptions,
 ): Promise<PerformanceResult> {
   const region = config.region || DEFAULT_REGION;
   const timeoutMs = options.timeout || config.timeoutMs || DEFAULT_TIMEOUT_MS;
@@ -797,7 +811,7 @@ export async function performanceLighthouse(
       };
     }
 
-    const result = await response.json() as { data?: any };
+    const result = (await response.json()) as { data?: PerformanceResult["data"] };
 
     return {
       success: true,
@@ -807,10 +821,10 @@ export async function performanceLighthouse(
         timestamp: new Date().toISOString(),
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      error: error.message || "Unknown error occurred",
+      error: getErrorMessage(error),
     };
   }
 }

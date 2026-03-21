@@ -2,11 +2,21 @@
  * Memory Store Tests
  */
 
-import { MemoryStore } from "../src/memory";
-import { ExecutionMode, WorkflowResult, Workflow } from "../src/runner";
-import { ErrorCode } from "@shared/types";
 import fs from "fs";
 import path from "path";
+import { ErrorCode } from "@shared/types";
+import { MemoryStore } from "../src/memory";
+import { ExecutionMode, type Workflow, type WorkflowResult } from "../src/runner";
+
+type RunHistoryRow = {
+  workflow_id: string;
+  success: number;
+};
+
+type RunStepRow = {
+  step_id: string;
+  tool_id: string;
+};
 
 describe("MemoryStore", () => {
   let memory: MemoryStore;
@@ -51,7 +61,7 @@ describe("MemoryStore", () => {
             stepId: "step1",
             toolId: "calculator",
             success: true,
-            data: { result: 4 },
+            data: { data: { result: 4 } },
             durationMs: 100,
             retries: 0,
             traceId: "test-trace-1",
@@ -68,7 +78,7 @@ describe("MemoryStore", () => {
       const runId = memory.storeRun(workflow, result);
       expect(runId).toBeGreaterThan(0);
 
-      const history = memory.getRunHistory("test-workflow", 10) as any[];
+      const history = memory.getRunHistory("test-workflow", 10) as unknown as RunHistoryRow[];
       expect(history).toHaveLength(1);
       expect(history[0].workflow_id).toBe("test-workflow");
       expect(history[0].success).toBe(1);
@@ -131,7 +141,7 @@ describe("MemoryStore", () => {
             stepId: "step1",
             toolId: "calculator",
             success: true,
-            data: { result: 50 },
+            data: { data: { result: 50 } },
             durationMs: 50,
             retries: 0,
             traceId: "trace-1",
@@ -142,7 +152,7 @@ describe("MemoryStore", () => {
             stepId: "step2",
             toolId: "clock",
             success: true,
-            data: { time: "12:00:00" },
+            data: { data: { time: "12:00:00" } },
             durationMs: 30,
             retries: 0,
             traceId: "trace-2",
@@ -157,7 +167,7 @@ describe("MemoryStore", () => {
       };
 
       const runId = memory.storeRun(workflow, result);
-      const steps = memory.getRunSteps(runId) as any[];
+      const steps = memory.getRunSteps(runId) as unknown as RunStepRow[];
 
       expect(steps).toHaveLength(2);
       expect(steps[0].step_id).toBe("step1");
@@ -309,8 +319,8 @@ describe("MemoryStore", () => {
 
       const patterns = memory.getSuccessfulPatterns("test-workflow", 10);
       expect(patterns).toHaveLength(2);
-      
-      const sequences = patterns.map(p => p.tool_sequence);
+
+      const sequences = patterns.map((p) => p.tool_sequence);
       expect(sequences).toContain("clock,calculator");
       expect(sequences).toContain("calculator,clock");
     });
@@ -366,9 +376,7 @@ describe("MemoryStore", () => {
         id: "test-workflow",
         name: "Test Workflow",
         mode: ExecutionMode.SEQUENTIAL,
-        steps: [
-          { id: "step1", toolId: "calculator", endpoint: "/calc", input: {} },
-        ],
+        steps: [{ id: "step1", toolId: "calculator", endpoint: "/calc", input: {} }],
       };
 
       const successResult: WorkflowResult = {

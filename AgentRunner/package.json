@@ -10,8 +10,8 @@
     "test": "jest"
   },
   "keywords": ["agent", "orchestration", "workflow", "llm"],
-  "author": "Shawna Pak-Bin",
-  "license": "MIT",
+  "author": "Shawna Pakbin",
+  "license": "LicenseRef-Shawna-NonCommercial",
   "dependencies": {
     "better-sqlite3": "^11.7.0"
   },

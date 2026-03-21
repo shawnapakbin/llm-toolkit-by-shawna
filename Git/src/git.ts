@@ -1,6 +1,6 @@
 import { exec } from "child_process";
-import { promisify } from "util";
 import path from "path";
+import { promisify } from "util";
 import { z } from "zod";
 
 const execAsync = promisify(exec);
@@ -84,7 +84,10 @@ export const GitResetSchema = z.object({
 
 const TIMEOUT_MS = 30000; // 30 seconds
 
-async function runGitCommand(command: string, cwd: string): Promise<{ stdout: string; stderr: string }> {
+async function runGitCommand(
+  command: string,
+  cwd: string,
+): Promise<{ stdout: string; stderr: string }> {
   try {
     const result = await execAsync(command, {
       cwd,
@@ -92,11 +95,16 @@ async function runGitCommand(command: string, cwd: string): Promise<{ stdout: st
       maxBuffer: 5 * 1024 * 1024, // 5MB
     });
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Git commands may have stderr even on success
     return {
-      stdout: error.stdout || "",
-      stderr: error.stderr || error.message,
+      stdout: error instanceof Error && "stdout" in error ? String(error.stdout ?? "") : "",
+      stderr:
+        error instanceof Error && "stderr" in error
+          ? String(error.stderr ?? error.message)
+          : error instanceof Error
+            ? error.message
+            : String(error),
     };
   }
 }
@@ -104,10 +112,13 @@ async function runGitCommand(command: string, cwd: string): Promise<{ stdout: st
 /**
  * Get repository status
  */
-export async function gitStatus(input: GitStatusInput, repoPath: string): Promise<{ output: string; files: string[] }> {
+export async function gitStatus(
+  input: GitStatusInput,
+  repoPath: string,
+): Promise<{ output: string; files: string[] }> {
   const shortFlag = input.short ? "--short" : "";
   const { stdout } = await runGitCommand(`git status ${shortFlag}`, repoPath);
-  
+
   // Extract modified files
   const files: string[] = [];
   const lines = stdout.split("\n");
@@ -125,7 +136,10 @@ export async function gitStatus(input: GitStatusInput, repoPath: string): Promis
 /**
  * View diff
  */
-export async function gitDiff(input: GitDiffInput, repoPath: string): Promise<{ output: string; filesChanged: number }> {
+export async function gitDiff(
+  input: GitDiffInput,
+  repoPath: string,
+): Promise<{ output: string; filesChanged: number }> {
   let command = "git diff";
   if (input.staged) command += " --staged";
   if (input.target) command += ` ${input.target}`;
@@ -145,7 +159,10 @@ export async function gitDiff(input: GitDiffInput, repoPath: string): Promise<{ 
 /**
  * View commit history
  */
-export async function gitLog(input: GitLogInput, repoPath: string): Promise<{ output: string; commits: Array<{ hash: string; message: string }> }> {
+export async function gitLog(
+  input: GitLogInput,
+  repoPath: string,
+): Promise<{ output: string; commits: Array<{ hash: string; message: string }> }> {
   let command = `git log --max-count=${input.maxCount}`;
   if (input.oneline) command += " --oneline";
   if (input.branch) command += ` ${input.branch}`;
@@ -174,14 +191,20 @@ export async function gitLog(input: GitLogInput, repoPath: string): Promise<{ ou
 /**
  * Manage branches
  */
-export async function gitBranch(input: GitBranchInput, repoPath: string): Promise<{ output: string; branches?: string[]; current?: string }> {
+export async function gitBranch(
+  input: GitBranchInput,
+  repoPath: string,
+): Promise<{ output: string; branches?: string[]; current?: string }> {
   let command = "git branch";
 
   if (input.action === "list") {
     const { stdout } = await runGitCommand(command, repoPath);
     const lines = stdout.split("\n").filter((l) => l.trim());
     const branches = lines.map((l) => l.replace("*", "").trim());
-    const current = lines.find((l) => l.startsWith("*"))?.replace("*", "").trim();
+    const current = lines
+      .find((l) => l.startsWith("*"))
+      ?.replace("*", "")
+      .trim();
 
     return {
       output: stdout,
@@ -208,7 +231,10 @@ export async function gitBranch(input: GitBranchInput, repoPath: string): Promis
 /**
  * Checkout branch or commit
  */
-export async function gitCheckout(input: GitCheckoutInput, repoPath: string): Promise<{ output: string; branch: string }> {
+export async function gitCheckout(
+  input: GitCheckoutInput,
+  repoPath: string,
+): Promise<{ output: string; branch: string }> {
   let command = "git checkout";
   if (input.createBranch) command += " -b";
   command += ` ${input.target}`;
@@ -228,7 +254,10 @@ export async function gitCheckout(input: GitCheckoutInput, repoPath: string): Pr
 /**
  * Create commit
  */
-export async function gitCommit(input: GitCommitInput, repoPath: string): Promise<{ output: string; hash: string }> {
+export async function gitCommit(
+  input: GitCommitInput,
+  repoPath: string,
+): Promise<{ output: string; hash: string }> {
   let command = "git commit";
   if (input.all) command += " -a";
   if (input.amend) command += " --amend";
@@ -280,7 +309,10 @@ export async function gitPull(input: GitPullInput, repoPath: string): Promise<{ 
 /**
  * Clone repository
  */
-export async function gitClone(input: GitCloneInput, repoPath: string): Promise<{ output: string; directory: string }> {
+export async function gitClone(
+  input: GitCloneInput,
+  repoPath: string,
+): Promise<{ output: string; directory: string }> {
   let command = `git clone ${input.url}`;
   if (input.directory) command += ` ${input.directory}`;
   if (input.branch) command += ` --branch ${input.branch}`;
@@ -300,7 +332,10 @@ export async function gitClone(input: GitCloneInput, repoPath: string): Promise<
 /**
  * Stash operations
  */
-export async function gitStash(input: GitStashInput, repoPath: string): Promise<{ output: string; stashes?: Array<{ index: number; message: string }> }> {
+export async function gitStash(
+  input: GitStashInput,
+  repoPath: string,
+): Promise<{ output: string; stashes?: Array<{ index: number; message: string }> }> {
   let command = "git stash";
 
   switch (input.action) {
@@ -345,7 +380,10 @@ export async function gitStash(input: GitStashInput, repoPath: string): Promise<
 /**
  * Reset repository state
  */
-export async function gitReset(input: GitResetInput, repoPath: string): Promise<{ output: string }> {
+export async function gitReset(
+  input: GitResetInput,
+  repoPath: string,
+): Promise<{ output: string }> {
   const command = `git reset --${input.mode} ${input.target}`;
   const { stdout } = await runGitCommand(command, repoPath);
 

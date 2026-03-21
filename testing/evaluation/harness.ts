@@ -25,6 +25,7 @@ type EvalTask = {
   id: string;
   name: string;
   category: "file-edit" | "shell-build" | "web-retrieval" | "math-engineering";
+  expectedSuccess?: boolean;
   workflow: Workflow;
 };
 
@@ -60,7 +61,10 @@ type EvalSummary = {
   passRate: number;
   averageRetries: number;
   failureCategories: Record<string, number>;
-  categoryStats: Record<string, { total: number; passed: number; failed: number; failureRate: number }>;
+  categoryStats: Record<
+    string,
+    { total: number; passed: number; failed: number; failureRate: number }
+  >;
 };
 
 type EvalOutput = {
@@ -69,7 +73,9 @@ type EvalOutput = {
     id: string;
     name: string;
     category: string;
+    expectedSuccess: boolean;
     success: boolean;
+    matchedExpectation: boolean;
     durationMs: number;
     retries: number;
     traceId: string;
@@ -84,7 +90,13 @@ type EvalOutput = {
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const TASKS_PATH = path.join(ROOT, "testing", "evaluation", "tasks.json");
-const BASELINE_PATH = path.join(ROOT, "testing", "evaluation", "baselines", "default-baseline.json");
+const BASELINE_PATH = path.join(
+  ROOT,
+  "testing",
+  "evaluation",
+  "baselines",
+  "default-baseline.json",
+);
 const RESULTS_DIR = path.join(ROOT, "testing", "evaluation", "results");
 const RESULT_PATH = path.join(RESULTS_DIR, "latest.json");
 const TRACES_DIR = path.join(RESULTS_DIR, "golden-traces");
@@ -113,13 +125,11 @@ class SeededRandom {
 
 let randomGen: SeededRandom | null = null;
 
-function getRandomValue(): number {
-  return randomGen ? randomGen.next() : Math.random();
-}
-
 function generateTraceId(): string {
   const now = Date.now();
-  const rand = randomGen ? randomGen.nextInt(10000000, 99999999).toString(36) : Math.random().toString(36).slice(2, 10);
+  const rand = randomGen
+    ? randomGen.nextInt(10000000, 99999999).toString(36)
+    : Math.random().toString(36).slice(2, 10);
   return `${now}-${rand}`;
 }
 
@@ -127,7 +137,9 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function executeMockStep(step: WorkflowStep): Promise<{ success: boolean; errorCode?: string; errorMessage?: string }> {
+async function executeMockStep(
+  step: WorkflowStep,
+): Promise<{ success: boolean; errorCode?: string; errorMessage?: string }> {
   if (step.toolId === "terminal") {
     const command = String(step.input.command || "").trim();
     if (!command) {
@@ -138,7 +150,11 @@ async function executeMockStep(step: WorkflowStep): Promise<{ success: boolean; 
       const attempt = (flakyBuildAttempts.get(step.id) || 0) + 1;
       flakyBuildAttempts.set(step.id, attempt);
       if (attempt === 1) {
-        return { success: false, errorCode: "EXECUTION_FAILED", errorMessage: "transient build failure" };
+        return {
+          success: false,
+          errorCode: "EXECUTION_FAILED",
+          errorMessage: "transient build failure",
+        };
       }
     }
 
@@ -232,13 +248,20 @@ async function executeWorkflow(workflow: Workflow): Promise<WorkflowResult> {
     durationMs: Date.now() - start,
     traceId,
     steps,
-    error: success ? undefined : `Workflow failed: ${steps.filter((step) => !step.success).length} step(s)`,
+    error: success
+      ? undefined
+      : `Workflow failed: ${steps.filter((step) => !step.success).length} step(s)`,
   };
 }
 
-function buildSummary(results: Array<{ task: EvalTask; workflowResult: WorkflowResult }>): EvalSummary {
+function buildSummary(
+  results: Array<{ task: EvalTask; workflowResult: WorkflowResult }>,
+): EvalSummary {
   const totalTasks = results.length;
-  const passedTasks = results.filter((entry) => entry.workflowResult.success).length;
+  const passedTasks = results.filter((entry) => {
+    const expectedSuccess = entry.task.expectedSuccess ?? true;
+    return entry.workflowResult.success === expectedSuccess;
+  }).length;
   const failedTasks = totalTasks - passedTasks;
   const passRate = totalTasks > 0 ? passedTasks / totalTasks : 0;
 
@@ -248,18 +271,25 @@ function buildSummary(results: Array<{ task: EvalTask; workflowResult: WorkflowR
   const averageRetries = totalTasks > 0 ? totalRetries / totalTasks : 0;
 
   const failureCategories: Record<string, number> = {};
-  const categoryStats: Record<string, { total: number; passed: number; failed: number; failureRate: number }> = {};
+  const categoryStats: Record<
+    string,
+    { total: number; passed: number; failed: number; failureRate: number }
+  > = {};
 
   for (const entry of results) {
     const category = entry.task.category;
     categoryStats[category] ||= { total: 0, passed: 0, failed: 0, failureRate: 0 };
     categoryStats[category].total += 1;
 
-    if (entry.workflowResult.success) {
+    const expectedSuccess = entry.task.expectedSuccess ?? true;
+    const matchedExpectation = entry.workflowResult.success === expectedSuccess;
+
+    if (matchedExpectation) {
       categoryStats[category].passed += 1;
     } else {
       categoryStats[category].failed += 1;
-      const failedCode = entry.workflowResult.steps.find((step) => !step.success)?.errorCode || "EXECUTION_FAILED";
+      const failedCode =
+        entry.workflowResult.steps.find((step) => !step.success)?.errorCode || "EXECUTION_FAILED";
       failureCategories[String(failedCode)] = (failureCategories[String(failedCode)] || 0) + 1;
     }
   }
@@ -281,21 +311,30 @@ function buildSummary(results: Array<{ task: EvalTask; workflowResult: WorkflowR
   };
 }
 
-function evaluateGate(summary: EvalSummary, baseline: Baseline): { passed: boolean; reasons: string[] } {
+function evaluateGate(
+  summary: EvalSummary,
+  baseline: Baseline,
+): { passed: boolean; reasons: string[] } {
   const reasons: string[] = [];
 
   if (summary.passRate < baseline.passRateThreshold) {
-    reasons.push(`Pass rate ${summary.passRate.toFixed(2)} is below threshold ${baseline.passRateThreshold.toFixed(2)}`);
+    reasons.push(
+      `Pass rate ${summary.passRate.toFixed(2)} is below threshold ${baseline.passRateThreshold.toFixed(2)}`,
+    );
   }
 
   if (summary.averageRetries > baseline.maxAverageRetries) {
-    reasons.push(`Average retries ${summary.averageRetries.toFixed(2)} exceeds ${baseline.maxAverageRetries.toFixed(2)}`);
+    reasons.push(
+      `Average retries ${summary.averageRetries.toFixed(2)} exceeds ${baseline.maxAverageRetries.toFixed(2)}`,
+    );
   }
 
   for (const [category, maxRate] of Object.entries(baseline.maxFailureRateByCategory)) {
     const actual = summary.categoryStats[category]?.failureRate ?? 0;
     if (actual > maxRate) {
-      reasons.push(`Failure rate for ${category} is ${actual.toFixed(2)} (max ${maxRate.toFixed(2)})`);
+      reasons.push(
+        `Failure rate for ${category} is ${actual.toFixed(2)} (max ${maxRate.toFixed(2)})`,
+      );
     }
   }
 
@@ -335,7 +374,11 @@ export async function runEvaluation(updateBaseline = false, seed?: number): Prom
       generatedAt: new Date().toISOString(),
     };
 
-    fs.writeFileSync(path.join(TRACES_DIR, `${task.id}.json`), JSON.stringify(timeline, null, 2), "utf-8");
+    fs.writeFileSync(
+      path.join(TRACES_DIR, `${task.id}.json`),
+      JSON.stringify(timeline, null, 2),
+      "utf-8",
+    );
   }
 
   const summary = buildSummary(taskResults);
@@ -345,7 +388,10 @@ export async function runEvaluation(updateBaseline = false, seed?: number): Prom
       passRateThreshold: summary.passRate,
       maxAverageRetries: summary.averageRetries,
       maxFailureRateByCategory: Object.fromEntries(
-        Object.entries(summary.categoryStats).map(([category, stat]) => [category, stat.failureRate])
+        Object.entries(summary.categoryStats).map(([category, stat]) => [
+          category,
+          stat.failureRate,
+        ]),
       ),
     };
     fs.writeFileSync(BASELINE_PATH, JSON.stringify(updated, null, 2), "utf-8");
@@ -356,6 +402,8 @@ export async function runEvaluation(updateBaseline = false, seed?: number): Prom
   const output: EvalOutput = {
     summary,
     tasks: taskResults.map(({ task, workflowResult }) => ({
+      expectedSuccess: task.expectedSuccess ?? true,
+      matchedExpectation: workflowResult.success === (task.expectedSuccess ?? true),
       id: task.id,
       name: task.name,
       category: task.category,
@@ -365,7 +413,9 @@ export async function runEvaluation(updateBaseline = false, seed?: number): Prom
       traceId: workflowResult.traceId,
       error: workflowResult.error,
     })),
-    traces: Object.fromEntries(taskResults.map(({ task, workflowResult }) => [task.id, { traceId: workflowResult.traceId }])),
+    traces: Object.fromEntries(
+      taskResults.map(({ task, workflowResult }) => [task.id, { traceId: workflowResult.traceId }]),
+    ),
     gate,
   };
 

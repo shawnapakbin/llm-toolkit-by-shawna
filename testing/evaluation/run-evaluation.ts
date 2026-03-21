@@ -1,11 +1,12 @@
 import { runEvaluation } from "./harness";
 
 async function main(): Promise<void> {
-  const updateBaseline = process.argv.includes("--update-baseline") || process.env.EVAL_UPDATE_BASELINE === "true";
-  
+  const updateBaseline =
+    process.argv.includes("--update-baseline") || process.env.EVAL_UPDATE_BASELINE === "true";
+
   // Parse seed from command line args or environment
   let seed: number | undefined;
-  const seedArg = process.argv.find(arg => arg.startsWith("--seed="));
+  const seedArg = process.argv.find((arg) => arg.startsWith("--seed="));
   if (seedArg) {
     seed = Number.parseInt(seedArg.split("=")[1], 10);
     if (Number.isNaN(seed)) {

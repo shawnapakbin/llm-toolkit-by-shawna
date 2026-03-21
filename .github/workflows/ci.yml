@@ -3,6 +3,26 @@ name: "Quality Gates"
 on: [push, pull_request]
 
 jobs:
+  vnext-scope:
+    name: "vNext Scope Guard"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: 'npm'
+      - name: "Install dependencies"
+        run: npm ci
+      - name: "Verify vNext scope manifest update"
+        env:
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: npm run verify:vnext-scope
+
   biome:
     name: "Biome: Format & Lint"
     runs-on: ubuntu-latest

@@ -1,6 +1,6 @@
 /**
  * Execution Tracer for LLM Toolkit
- * 
+ *
  * Tracks workflow execution with detailed timeline and span information.
  */
 
@@ -28,7 +28,7 @@ export interface Span {
   durationMs?: number;
   status?: SpanStatus;
   tags: Record<string, string | number | boolean>;
-  logs: Array<{ timestamp: number; message: string; data?: any }>;
+  logs: Array<{ timestamp: number; message: string; data?: unknown }>;
 }
 
 /**
@@ -43,7 +43,7 @@ export interface Trace {
   durationMs?: number;
   status?: SpanStatus;
   spans: Span[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 /**
@@ -52,11 +52,11 @@ export interface Trace {
 export class Tracer {
   private traces = new Map<string, Trace>();
   private activeSpans = new Map<string, Span>();
-  
+
   /**
    * Start a new trace
    */
-  startTrace(workflowId: string, workflowName: string, metadata?: Record<string, any>): string {
+  startTrace(workflowId: string, workflowName: string, metadata?: Record<string, unknown>): string {
     const traceId = generateTraceId();
     const trace: Trace = {
       traceId,
@@ -69,19 +69,19 @@ export class Tracer {
     this.traces.set(traceId, trace);
     return traceId;
   }
-  
+
   /**
    * End a trace
    */
   endTrace(traceId: string, status: SpanStatus): void {
     const trace = this.traces.get(traceId);
     if (!trace) return;
-    
+
     trace.endTime = Date.now();
     trace.durationMs = trace.endTime - trace.startTime;
     trace.status = status;
   }
-  
+
   /**
    * Start a new span
    */
@@ -89,13 +89,13 @@ export class Tracer {
     traceId: string,
     name: string,
     tags?: Record<string, string | number | boolean>,
-    parentSpanId?: string
+    parentSpanId?: string,
   ): string {
     const trace = this.traces.get(traceId);
     if (!trace) {
       throw new Error(`Trace ${traceId} not found`);
     }
-    
+
     const spanId = `${traceId}-${trace.spans.length}`;
     const span: Span = {
       spanId,
@@ -106,65 +106,69 @@ export class Tracer {
       tags: tags || {},
       logs: [],
     };
-    
+
     trace.spans.push(span);
     this.activeSpans.set(spanId, span);
     return spanId;
   }
-  
+
   /**
    * End a span
    */
-  endSpan(spanId: string, status: SpanStatus, tags?: Record<string, string | number | boolean>): void {
+  endSpan(
+    spanId: string,
+    status: SpanStatus,
+    tags?: Record<string, string | number | boolean>,
+  ): void {
     const span = this.activeSpans.get(spanId);
     if (!span) return;
-    
+
     span.endTime = Date.now();
     span.durationMs = span.endTime - span.startTime;
     span.status = status;
-    
+
     if (tags) {
       Object.assign(span.tags, tags);
     }
-    
+
     this.activeSpans.delete(spanId);
   }
-  
+
   /**
    * Add a log to a span
    */
-  logSpan(spanId: string, message: string, data?: any): void {
+  logSpan(spanId: string, message: string, data?: unknown): void {
     const span = this.activeSpans.get(spanId);
     if (!span) return;
-    
+
     span.logs.push({
       timestamp: Date.now(),
       message,
       data,
     });
   }
-  
+
   /**
    * Get a trace
    */
   getTrace(traceId: string): Trace | undefined {
     return this.traces.get(traceId);
   }
-  
+
   /**
    * Get all traces
    */
   getAllTraces(): Trace[] {
     return Array.from(this.traces.values());
   }
-  
+
   /**
    * Export trace as timeline JSON
    */
-  exportTimeline(traceId: string): any {
+  exportTimeline(traceId: string): Record<string, unknown> | null {
     const trace = this.traces.get(traceId);
     if (!trace) return null;
-    
+
     const timeline = {
       traceId: trace.traceId,
       workflowId: trace.workflowId,
@@ -174,7 +178,7 @@ export class Tracer {
       durationMs: trace.durationMs,
       status: trace.status,
       metadata: trace.metadata,
-      spans: trace.spans.map(span => ({
+      spans: trace.spans.map((span) => ({
         spanId: span.spanId,
         parentSpanId: span.parentSpanId,
         name: span.name,
@@ -183,21 +187,21 @@ export class Tracer {
         durationMs: span.durationMs,
         status: span.status,
         tags: span.tags,
-        logs: span.logs.map(log => ({
+        logs: span.logs.map((log) => ({
           timestamp: new Date(log.timestamp).toISOString(),
           message: log.message,
           data: log.data,
         })),
       })),
     };
-    
+
     return timeline;
   }
-  
+
   /**
    * Clear old traces
    */
-  cleanup(maxAgeMs: number = 3600000): void {
+  cleanup(maxAgeMs = 3600000): void {
     const now = Date.now();
     for (const [traceId, trace] of this.traces) {
       if (trace.endTime && now - trace.endTime > maxAgeMs) {
@@ -205,7 +209,7 @@ export class Tracer {
       }
     }
   }
-  
+
   /**
    * Get trace statistics
    */
@@ -217,13 +221,13 @@ export class Tracer {
     avgDurationMs: number;
   } {
     const traces = Array.from(this.traces.values());
-    const completed = traces.filter(t => t.endTime);
-    const active = traces.filter(t => !t.endTime);
-    const failed = completed.filter(t => t.status === SpanStatus.ERROR);
-    
+    const completed = traces.filter((t) => t.endTime);
+    const active = traces.filter((t) => !t.endTime);
+    const failed = completed.filter((t) => t.status === SpanStatus.ERROR);
+
     const totalDuration = completed.reduce((sum, t) => sum + (t.durationMs || 0), 0);
     const avgDuration = completed.length > 0 ? totalDuration / completed.length : 0;
-    
+
     return {
       totalTraces: traces.length,
       activeTraces: active.length,

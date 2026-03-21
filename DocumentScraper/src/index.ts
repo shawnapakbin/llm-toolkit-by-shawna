@@ -1,7 +1,12 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
-import { crawlDocuments, readDocument, type CrawlDocumentsInput, type ReadDocumentInput } from "./document-scraper";
+import {
+  type CrawlDocumentsInput,
+  type ReadDocumentInput,
+  crawlDocuments,
+  readDocument,
+} from "./document-scraper";
 import { runPreflightChecks } from "./preflight-check";
 
 dotenv.config();
@@ -29,7 +34,12 @@ function createSuccessResponse<T>(data: T, timingMs: number, traceId: string) {
   return { success: true, data, timingMs, traceId };
 }
 
-function createErrorResponse(errorCode: string, errorMessage: string, timingMs: number, traceId: string) {
+function createErrorResponse(
+  errorCode: string,
+  errorMessage: string,
+  timingMs: number,
+  traceId: string,
+) {
   return { success: false, errorCode, errorMessage, timingMs, traceId };
 }
 
@@ -44,7 +54,8 @@ app.get("/health", (_req: Request, res: Response) => {
 app.get("/tool-schema", (_req: Request, res: Response) => {
   res.json({
     name: "read_document",
-    description: "Reads local or remote documents and returns extracted text, sections, description, and PDF encryption notifications.",
+    description:
+      "Reads local or remote documents and returns extracted text, sections, description, and PDF encryption notifications.",
     parameters: {
       type: "object",
       properties: {
@@ -63,69 +74,77 @@ app.get("/tool-schema", (_req: Request, res: Response) => {
   });
 });
 
-app.post("/tools/read_document", async (req: Request<unknown, unknown, ReadDocumentInput>, res: Response) => {
-  const timer = new OperationTimer();
-  const traceId = generateTraceId();
+app.post(
+  "/tools/read_document",
+  async (req: Request<unknown, unknown, ReadDocumentInput>, res: Response) => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
 
-  const input = req.body || {};
-  const result = await readDocument(input);
-  const timingMs = timer.elapsed();
+    const input = req.body || {};
+    const result = await readDocument(input);
+    const timingMs = timer.elapsed();
 
-  if (result.success) {
-    res.status(200).json(createSuccessResponse(result, timingMs, traceId));
-    return;
-  }
+    if (result.success) {
+      res.status(200).json(createSuccessResponse(result, timingMs, traceId));
+      return;
+    }
 
-  const response = createErrorResponse(
-    result.errorCode || "EXECUTION_FAILED",
-    result.error || "Document read failed",
-    timingMs,
-    traceId
-  );
-
-  const status = result.encryptionStatusCode === "PDF_ENCRYPTED" || result.encryptionStatusCode === "PDF_INVALID_PASSWORD"
-    ? 423
-    : result.errorCode === "POLICY_BLOCKED"
-      ? 403
-      : result.errorCode === "NOT_FOUND"
-        ? 404
-        : 400;
-
-  res.status(status).json({ ...response, data: result, error: response.errorMessage });
-});
-
-app.post("/tools/crawl_documents", async (req: Request<unknown, unknown, CrawlDocumentsInput>, res: Response) => {
-  const timer = new OperationTimer();
-  const traceId = generateTraceId();
-
-  if (!req.body?.url) {
     const response = createErrorResponse(
-      "INVALID_INPUT",
-      "url is required",
-      timer.elapsed(),
-      traceId
+      result.errorCode || "EXECUTION_FAILED",
+      result.error || "Document read failed",
+      timingMs,
+      traceId,
     );
-    res.status(400).json({ ...response, error: response.errorMessage });
-    return;
-  }
 
-  const result = await crawlDocuments(req.body);
-  const timingMs = timer.elapsed();
+    const status =
+      result.encryptionStatusCode === "PDF_ENCRYPTED" ||
+      result.encryptionStatusCode === "PDF_INVALID_PASSWORD"
+        ? 423
+        : result.errorCode === "POLICY_BLOCKED"
+          ? 403
+          : result.errorCode === "NOT_FOUND"
+            ? 404
+            : 400;
 
-  if (result.success) {
-    res.status(200).json(createSuccessResponse(result, timingMs, traceId));
-    return;
-  }
+    res.status(status).json({ ...response, data: result, error: response.errorMessage });
+  },
+);
 
-  const response = createErrorResponse(
-    "EXECUTION_FAILED",
-    result.errors[0] || "Crawl completed with errors",
-    timingMs,
-    traceId
-  );
+app.post(
+  "/tools/crawl_documents",
+  async (req: Request<unknown, unknown, CrawlDocumentsInput>, res: Response) => {
+    const timer = new OperationTimer();
+    const traceId = generateTraceId();
 
-  res.status(400).json({ ...response, data: result, error: response.errorMessage });
-});
+    if (!req.body?.url) {
+      const response = createErrorResponse(
+        "INVALID_INPUT",
+        "url is required",
+        timer.elapsed(),
+        traceId,
+      );
+      res.status(400).json({ ...response, error: response.errorMessage });
+      return;
+    }
+
+    const result = await crawlDocuments(req.body);
+    const timingMs = timer.elapsed();
+
+    if (result.success) {
+      res.status(200).json(createSuccessResponse(result, timingMs, traceId));
+      return;
+    }
+
+    const response = createErrorResponse(
+      "EXECUTION_FAILED",
+      result.errors[0] || "Crawl completed with errors",
+      timingMs,
+      traceId,
+    );
+
+    res.status(400).json({ ...response, data: result, error: response.errorMessage });
+  },
+);
 
 if (require.main === module) {
   app.listen(PORT, () => {

@@ -1,43 +1,47 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import {
-  detectPackageManager,
-  installPackages,
-  updatePackages,
-  auditVulnerabilities,
-  listOutdated,
-  removeDependencies,
-  viewDependencies,
-  lockDependencies,
-  DetectPackageManagerSchema,
-  InstallPackagesSchema,
-  UpdatePackagesSchema,
-  AuditVulnerabilitiesSchema,
-  ListOutdatedSchema,
-  RemoveDependenciesSchema,
-  ViewDependenciesSchema,
-  LockDependenciesSchema,
-} from "./package-manager";
-import {
-  validatePackageNames,
-  validateWorkspacePath,
-  isOperationSupported,
-  checkRateLimit,
-  getPackageManagerWorkspaceRoot,
-} from "./policy";
 import {
   ErrorCode,
-  createSuccessResponse,
   createErrorResponse,
+  createSuccessResponse,
   generateTraceId,
 } from "@shared/types";
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
+import { z } from "zod";
+import {
+  AuditVulnerabilitiesSchema,
+  DetectPackageManagerSchema,
+  InstallPackagesSchema,
+  ListOutdatedSchema,
+  LockDependenciesSchema,
+  RemoveDependenciesSchema,
+  UpdatePackagesSchema,
+  ViewDependenciesSchema,
+  auditVulnerabilities,
+  detectPackageManager,
+  installPackages,
+  listOutdated,
+  lockDependencies,
+  removeDependencies,
+  updatePackages,
+  viewDependencies,
+} from "./package-manager";
+import {
+  checkRateLimit,
+  getPackageManagerWorkspaceRoot,
+  isOperationSupported,
+  validatePackageNames,
+} from "./policy";
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3012;
 const WORKSPACE_ROOT = getPackageManagerWorkspaceRoot();
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 app.use(cors());
 app.use(express.json());
@@ -59,19 +63,36 @@ app.post("/tools/detect_package_manager", async (req, res) => {
     const rateCheck = checkRateLimit("detect_package_manager");
     if (!rateCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, rateCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          rateCheck.reason!,
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const result = await detectPackageManager(WORKSPACE_ROOT);
     res.json(createSuccessResponse(result, Date.now() - start, traceId));
-  } catch (error: any) {
-    if (error.name === "ZodError") {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, error.errors[0].message, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          error.errors[0]?.message || "Invalid input",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
-    res.json(createErrorResponse(ErrorCode.EXECUTION_FAILED, error.message, Date.now() - start, traceId));
+    res.json(
+      createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        getErrorMessage(error),
+        Date.now() - start,
+        traceId,
+      ),
+    );
   }
 });
 
@@ -86,14 +107,24 @@ app.post("/tools/install_packages", async (req, res) => {
     const pkgCheck = validatePackageNames(input.packages);
     if (!pkgCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, pkgCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          pkgCheck.reason!,
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const rateCheck = checkRateLimit("install_packages");
     if (!rateCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, rateCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          rateCheck.reason!,
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
@@ -101,26 +132,43 @@ app.post("/tools/install_packages", async (req, res) => {
     const detection = await detectPackageManager(WORKSPACE_ROOT);
     if (!detection.detected) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, "No package manager detected", Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "No package manager detected",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const opCheck = isOperationSupported(detection.detected.manager, "install");
     if (!opCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, opCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(ErrorCode.POLICY_BLOCKED, opCheck.reason!, Date.now() - start, traceId),
       );
     }
 
     const result = await installPackages(input, detection.detected.manager, WORKSPACE_ROOT);
     res.json(createSuccessResponse(result, Date.now() - start, traceId));
-  } catch (error: any) {
-    if (error.name === "ZodError") {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, error.errors[0].message, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          error.errors[0]?.message || "Invalid input",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
-    res.json(createErrorResponse(ErrorCode.EXECUTION_FAILED, error.message, Date.now() - start, traceId));
+    res.json(
+      createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        getErrorMessage(error),
+        Date.now() - start,
+        traceId,
+      ),
+    );
   }
 });
 
@@ -136,7 +184,12 @@ app.post("/tools/update_packages", async (req, res) => {
       const pkgCheck = validatePackageNames(input.packages);
       if (!pkgCheck.valid) {
         return res.json(
-          createErrorResponse(ErrorCode.POLICY_BLOCKED, pkgCheck.reason!, Date.now() - start, traceId)
+          createErrorResponse(
+            ErrorCode.POLICY_BLOCKED,
+            pkgCheck.reason!,
+            Date.now() - start,
+            traceId,
+          ),
         );
       }
     }
@@ -144,33 +197,55 @@ app.post("/tools/update_packages", async (req, res) => {
     const rateCheck = checkRateLimit("update_packages");
     if (!rateCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, rateCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          rateCheck.reason!,
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const detection = await detectPackageManager(WORKSPACE_ROOT);
     if (!detection.detected) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, "No package manager detected", Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "No package manager detected",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const opCheck = isOperationSupported(detection.detected.manager, "update");
     if (!opCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, opCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(ErrorCode.POLICY_BLOCKED, opCheck.reason!, Date.now() - start, traceId),
       );
     }
 
     const result = await updatePackages(input, detection.detected.manager, WORKSPACE_ROOT);
     res.json(createSuccessResponse(result, Date.now() - start, traceId));
-  } catch (error: any) {
-    if (error.name === "ZodError") {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, error.errors[0].message, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          error.errors[0]?.message || "Invalid input",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
-    res.json(createErrorResponse(ErrorCode.EXECUTION_FAILED, error.message, Date.now() - start, traceId));
+    res.json(
+      createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        getErrorMessage(error),
+        Date.now() - start,
+        traceId,
+      ),
+    );
   }
 });
 
@@ -185,33 +260,55 @@ app.post("/tools/audit_vulnerabilities", async (req, res) => {
     const rateCheck = checkRateLimit("audit_vulnerabilities");
     if (!rateCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, rateCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          rateCheck.reason!,
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const detection = await detectPackageManager(WORKSPACE_ROOT);
     if (!detection.detected) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, "No package manager detected", Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "No package manager detected",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const opCheck = isOperationSupported(detection.detected.manager, "audit");
     if (!opCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, opCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(ErrorCode.POLICY_BLOCKED, opCheck.reason!, Date.now() - start, traceId),
       );
     }
 
     const result = await auditVulnerabilities(input, detection.detected.manager, WORKSPACE_ROOT);
     res.json(createSuccessResponse(result, Date.now() - start, traceId));
-  } catch (error: any) {
-    if (error.name === "ZodError") {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, error.errors[0].message, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          error.errors[0]?.message || "Invalid input",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
-    res.json(createErrorResponse(ErrorCode.EXECUTION_FAILED, error.message, Date.now() - start, traceId));
+    res.json(
+      createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        getErrorMessage(error),
+        Date.now() - start,
+        traceId,
+      ),
+    );
   }
 });
 
@@ -226,26 +323,48 @@ app.post("/tools/list_outdated", async (req, res) => {
     const rateCheck = checkRateLimit("list_outdated");
     if (!rateCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, rateCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          rateCheck.reason!,
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const detection = await detectPackageManager(WORKSPACE_ROOT);
     if (!detection.detected) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, "No package manager detected", Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "No package manager detected",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const result = await listOutdated(input, detection.detected.manager, WORKSPACE_ROOT);
     res.json(createSuccessResponse(result, Date.now() - start, traceId));
-  } catch (error: any) {
-    if (error.name === "ZodError") {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, error.errors[0].message, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          error.errors[0]?.message || "Invalid input",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
-    res.json(createErrorResponse(ErrorCode.EXECUTION_FAILED, error.message, Date.now() - start, traceId));
+    res.json(
+      createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        getErrorMessage(error),
+        Date.now() - start,
+        traceId,
+      ),
+    );
   }
 });
 
@@ -260,40 +379,67 @@ app.post("/tools/remove_dependencies", async (req, res) => {
     const pkgCheck = validatePackageNames(input.packages);
     if (!pkgCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, pkgCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          pkgCheck.reason!,
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const rateCheck = checkRateLimit("remove_dependencies");
     if (!rateCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, rateCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.POLICY_BLOCKED,
+          rateCheck.reason!,
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const detection = await detectPackageManager(WORKSPACE_ROOT);
     if (!detection.detected) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, "No package manager detected", Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "No package manager detected",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const opCheck = isOperationSupported(detection.detected.manager, "uninstall");
     if (!opCheck.valid) {
       return res.json(
-        createErrorResponse(ErrorCode.POLICY_BLOCKED, opCheck.reason!, Date.now() - start, traceId)
+        createErrorResponse(ErrorCode.POLICY_BLOCKED, opCheck.reason!, Date.now() - start, traceId),
       );
     }
 
     const result = await removeDependencies(input, detection.detected.manager, WORKSPACE_ROOT);
     res.json(createSuccessResponse(result, Date.now() - start, traceId));
-  } catch (error: any) {
-    if (error.name === "ZodError") {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, error.errors[0].message, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          error.errors[0]?.message || "Invalid input",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
-    res.json(createErrorResponse(ErrorCode.EXECUTION_FAILED, error.message, Date.now() - start, traceId));
+    res.json(
+      createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        getErrorMessage(error),
+        Date.now() - start,
+        traceId,
+      ),
+    );
   }
 });
 
@@ -308,19 +454,36 @@ app.post("/tools/view_dependencies", async (req, res) => {
     const detection = await detectPackageManager(WORKSPACE_ROOT);
     if (!detection.detected) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, "No package manager detected", Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "No package manager detected",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const result = await viewDependencies(input, detection.detected.manager, WORKSPACE_ROOT);
     res.json(createSuccessResponse(result, Date.now() - start, traceId));
-  } catch (error: any) {
-    if (error.name === "ZodError") {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, error.errors[0].message, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          error.errors[0]?.message || "Invalid input",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
-    res.json(createErrorResponse(ErrorCode.EXECUTION_FAILED, error.message, Date.now() - start, traceId));
+    res.json(
+      createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        getErrorMessage(error),
+        Date.now() - start,
+        traceId,
+      ),
+    );
   }
 });
 
@@ -335,19 +498,36 @@ app.post("/tools/lock_dependencies", async (req, res) => {
     const detection = await detectPackageManager(WORKSPACE_ROOT);
     if (!detection.detected) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, "No package manager detected", Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          "No package manager detected",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
 
     const result = await lockDependencies(input, detection.detected.manager, WORKSPACE_ROOT);
     res.json(createSuccessResponse(result, Date.now() - start, traceId));
-  } catch (error: any) {
-    if (error.name === "ZodError") {
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
       return res.json(
-        createErrorResponse(ErrorCode.INVALID_INPUT, error.errors[0].message, Date.now() - start, traceId)
+        createErrorResponse(
+          ErrorCode.INVALID_INPUT,
+          error.errors[0]?.message || "Invalid input",
+          Date.now() - start,
+          traceId,
+        ),
       );
     }
-    res.json(createErrorResponse(ErrorCode.EXECUTION_FAILED, error.message, Date.now() - start, traceId));
+    res.json(
+      createErrorResponse(
+        ErrorCode.EXECUTION_FAILED,
+        getErrorMessage(error),
+        Date.now() - start,
+        traceId,
+      ),
+    );
   }
 });
 

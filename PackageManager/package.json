@@ -23,7 +23,7 @@
     "multi-ecosystem"
   ],
   "author": "Shawna Pakbin",
-  "license": "MIT",
+  "license": "LicenseRef-Shawna-NonCommercial",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@shared/types": "file:../shared",

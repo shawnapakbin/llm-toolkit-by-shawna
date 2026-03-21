@@ -1,6 +1,6 @@
 /**
  * Structured Logger for LLM Toolkit
- * 
+ *
  * Provides consistent logging with trace IDs, levels, and structured metadata.
  */
 
@@ -26,7 +26,7 @@ export interface LogEntry {
   traceId?: string;
   toolName?: string;
   durationMs?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -43,13 +43,13 @@ export class ConsoleTransport implements LogTransport {
   write(entry: LogEntry): void {
     const levelColors = {
       [LogLevel.DEBUG]: "\x1b[36m", // Cyan
-      [LogLevel.INFO]: "\x1b[32m",  // Green
-      [LogLevel.WARN]: "\x1b[33m",  // Yellow
+      [LogLevel.INFO]: "\x1b[32m", // Green
+      [LogLevel.WARN]: "\x1b[33m", // Yellow
       [LogLevel.ERROR]: "\x1b[31m", // Red
     };
     const reset = "\x1b[0m";
     const color = levelColors[entry.level] || reset;
-    
+
     const parts = [
       `${color}[${entry.level.toUpperCase()}]${reset}`,
       entry.timestamp,
@@ -58,10 +58,10 @@ export class ConsoleTransport implements LogTransport {
       entry.message,
       entry.durationMs !== undefined ? `(${entry.durationMs}ms)` : "",
     ];
-    
+
     const message = parts.filter(Boolean).join(" ");
     console.log(message);
-    
+
     if (entry.metadata && Object.keys(entry.metadata).length > 0) {
       console.log("  ", JSON.stringify(entry.metadata, null, 2));
     }
@@ -83,28 +83,28 @@ export class JSONTransport implements LogTransport {
 export class FileTransport implements LogTransport {
   private buffer: LogEntry[] = [];
   private flushInterval: NodeJS.Timeout;
-  
+
   constructor(
     private filePath: string,
-    private bufferSize: number = 100,
-    flushIntervalMs: number = 5000
+    private bufferSize = 100,
+    flushIntervalMs = 5000,
   ) {
     this.flushInterval = setInterval(() => this.flush(), flushIntervalMs);
   }
-  
+
   write(entry: LogEntry): void {
     this.buffer.push(entry);
     if (this.buffer.length >= this.bufferSize) {
       this.flush();
     }
   }
-  
+
   flush(): void {
     if (this.buffer.length === 0) return;
-    
+
     const fs = require("fs");
-    const lines = this.buffer.map(e => JSON.stringify(e)).join("\n") + "\n";
-    
+    const lines = this.buffer.map((e) => JSON.stringify(e)).join("\n") + "\n";
+
     try {
       fs.appendFileSync(this.filePath, lines, "utf8");
       this.buffer = [];
@@ -112,7 +112,7 @@ export class FileTransport implements LogTransport {
       console.error("Failed to write logs to file:", error);
     }
   }
-  
+
   close(): void {
     clearInterval(this.flushInterval);
     this.flush();
@@ -125,23 +125,26 @@ export class FileTransport implements LogTransport {
 export class Logger {
   private transports: LogTransport[] = [];
   private minLevel: LogLevel = LogLevel.INFO;
-  
-  constructor(private defaultToolName?: string, private defaultTraceId?: string) {}
-  
+
+  constructor(
+    private defaultToolName?: string,
+    private defaultTraceId?: string,
+  ) {}
+
   /**
    * Add a transport
    */
   addTransport(transport: LogTransport): void {
     this.transports.push(transport);
   }
-  
+
   /**
    * Set minimum log level
    */
   setLevel(level: LogLevel): void {
     this.minLevel = level;
   }
-  
+
   /**
    * Check if level should be logged
    */
@@ -151,20 +154,20 @@ export class Logger {
     const levelIndex = levels.indexOf(level);
     return levelIndex >= minIndex;
   }
-  
+
   /**
    * Log an entry
    */
   private log(
     level: LogLevel,
     message: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
     traceId?: string,
     toolName?: string,
-    durationMs?: number
+    durationMs?: number,
   ): void {
     if (!this.shouldLog(level)) return;
-    
+
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -174,7 +177,7 @@ export class Logger {
       durationMs,
       metadata,
     };
-    
+
     for (const transport of this.transports) {
       try {
         transport.write(entry);
@@ -183,35 +186,35 @@ export class Logger {
       }
     }
   }
-  
+
   /**
    * Log debug message
    */
-  debug(message: string, metadata?: Record<string, any>): void {
+  debug(message: string, metadata?: Record<string, unknown>): void {
     this.log(LogLevel.DEBUG, message, metadata);
   }
-  
+
   /**
    * Log info message
    */
-  info(message: string, metadata?: Record<string, any>): void {
+  info(message: string, metadata?: Record<string, unknown>): void {
     this.log(LogLevel.INFO, message, metadata);
   }
-  
+
   /**
    * Log warning message
    */
-  warn(message: string, metadata?: Record<string, any>): void {
+  warn(message: string, metadata?: Record<string, unknown>): void {
     this.log(LogLevel.WARN, message, metadata);
   }
-  
+
   /**
    * Log error message
    */
-  error(message: string, metadata?: Record<string, any>): void {
+  error(message: string, metadata?: Record<string, unknown>): void {
     this.log(LogLevel.ERROR, message, metadata);
   }
-  
+
   /**
    * Create a child logger with specific context
    */
@@ -221,7 +224,7 @@ export class Logger {
     childLogger.minLevel = this.minLevel;
     return childLogger;
   }
-  
+
   /**
    * Log a tool execution
    */
@@ -230,18 +233,11 @@ export class Logger {
     success: boolean,
     durationMs: number,
     traceId: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>,
   ): void {
     const level = success ? LogLevel.INFO : LogLevel.ERROR;
     const status = success ? "completed" : "failed";
-    this.log(
-      level,
-      `Tool ${toolName} ${status}`,
-      metadata,
-      traceId,
-      toolName,
-      durationMs
-    );
+    this.log(level, `Tool ${toolName} ${status}`, metadata, traceId, toolName, durationMs);
   }
 }
 

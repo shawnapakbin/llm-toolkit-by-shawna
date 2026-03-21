@@ -1,12 +1,12 @@
 /**
  * Clock Policy Module
- * 
+ *
  * Validates timezone and locale inputs for clock operations.
  */
 
 /**
  * Validates whether a timezone string is a valid IANA timezone.
- * 
+ *
  * @param timeZone - The timezone string to validate
  * @returns true if the timezone is valid
  */
@@ -22,7 +22,7 @@ export function isValidTimeZone(timeZone: string): boolean {
 /**
  * Normalizes and validates a locale string.
  * Falls back to "en-US" if the locale is invalid or unsupported.
- * 
+ *
  * @param locale - The locale string to normalize
  * @returns A valid locale string
  */
@@ -60,7 +60,7 @@ export const COMMON_TIMEZONES = [
 /**
  * Checks if a timezone string looks like an IANA timezone format.
  * This is a heuristic check, not a complete validation.
- * 
+ *
  * @param timeZone - The timezone string to check
  * @returns true if it looks like an IANA timezone
  */
@@ -81,7 +81,7 @@ export const MAX_LOCALE_LENGTH = 20;
 
 /**
  * Checks if a timezone string is within acceptable length limits.
- * 
+ *
  * @param timeZone - The timezone string to check
  * @returns true if the timezone is too long
  */
@@ -91,7 +91,7 @@ export function isTimeZoneTooLong(timeZone: string): boolean {
 
 /**
  * Checks if a locale string is within acceptable length limits.
- * 
+ *
  * @param locale - The locale string to check
  * @returns true if the locale is too long
  */

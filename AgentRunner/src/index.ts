@@ -1,6 +1,6 @@
 /**
  * Agent Runner - Main Entry Point
- * 
+ *
  * Provides orchestration and workflow execution for LLM Toolkit.
  */
 
@@ -22,6 +22,10 @@ export {
   WorkflowResult,
   StepResult,
   RetryPolicy,
+  AmbiguityAnalysis,
+  ClarificationWorkflowOptions,
+  ApprovalBlockContext,
+  WorkflowExecutionOptions,
 } from "./runner";
 
 export {
@@ -31,9 +35,9 @@ export {
   SessionContext,
 } from "./memory";
 
-import { defaultRegistry, registerDefaultTools, ToolRegistry } from "./registry";
-import { AgentRunner } from "./runner";
 import { MemoryStore } from "./memory";
+import { type ToolRegistry, defaultRegistry, registerDefaultTools } from "./registry";
+import { AgentRunner } from "./runner";
 
 /**
  * Create a fully configured agent runner instance

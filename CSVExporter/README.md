@@ -24,7 +24,7 @@ npm run build
   "mcpServers": {
     "csv-exporter": {
       "command": "node",
-      "args": ["<REPO_ROOT>/CSVExporter/dist/mcp-server.js"],
+      "args": ["CSVExporter/dist/mcp-server.js"],
       "env": {
         "CSV_EXPORT_ROOT": ""
       }

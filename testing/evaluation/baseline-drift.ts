@@ -15,7 +15,10 @@ type EvalSummary = {
   passRate: number;
   averageRetries: number;
   failureCategories: Record<string, number>;
-  categoryStats: Record<string, { total: number; passed: number; failed: number; failureRate: number }>;
+  categoryStats: Record<
+    string,
+    { total: number; passed: number; failed: number; failureRate: number }
+  >;
 };
 
 type EvalOutput = {
@@ -27,7 +30,13 @@ type EvalOutput = {
 };
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const BASELINE_PATH = path.join(ROOT, "testing", "evaluation", "baselines", "default-baseline.json");
+const BASELINE_PATH = path.join(
+  ROOT,
+  "testing",
+  "evaluation",
+  "baselines",
+  "default-baseline.json",
+);
 const RESULT_PATH = path.join(ROOT, "testing", "evaluation", "results", "latest.json");
 
 function formatPercent(value: number): string {
@@ -49,18 +58,26 @@ function generateDriftReport(baseline: Baseline, result: EvalOutput): void {
   console.log();
 
   console.log("📊 Overall Metrics:");
-  console.log(`  Pass Rate:       ${formatPercent(summary.passRate)} (baseline: ${formatPercent(baseline.passRateThreshold)})`);
+  console.log(
+    `  Pass Rate:       ${formatPercent(summary.passRate)} (baseline: ${formatPercent(baseline.passRateThreshold)})`,
+  );
   const passRateDelta = summary.passRate - baseline.passRateThreshold;
   if (passRateDelta !== 0) {
-    console.log(`                   Drift: ${formatDelta(summary.passRate, baseline.passRateThreshold)} ${passRateDelta < 0 ? "⚠️  DEGRADED" : "✅ IMPROVED"}`);
+    console.log(
+      `                   Drift: ${formatDelta(summary.passRate, baseline.passRateThreshold)} ${passRateDelta < 0 ? "⚠️  DEGRADED" : "✅ IMPROVED"}`,
+    );
   }
   console.log();
 
-  console.log(`  Average Retries: ${summary.averageRetries.toFixed(2)} (baseline: ${baseline.maxAverageRetries.toFixed(2)})`);
+  console.log(
+    `  Average Retries: ${summary.averageRetries.toFixed(2)} (baseline: ${baseline.maxAverageRetries.toFixed(2)})`,
+  );
   const retriesDelta = summary.averageRetries - baseline.maxAverageRetries;
   if (retriesDelta !== 0) {
     const sign = retriesDelta >= 0 ? "+" : "";
-    console.log(`                   Drift: ${sign}${retriesDelta.toFixed(2)} ${retriesDelta > 0 ? "⚠️  DEGRADED" : "✅ IMPROVED"}`);
+    console.log(
+      `                   Drift: ${sign}${retriesDelta.toFixed(2)} ${retriesDelta > 0 ? "⚠️  DEGRADED" : "✅ IMPROVED"}`,
+    );
   }
   console.log();
 
@@ -70,7 +87,9 @@ function generateDriftReport(baseline: Baseline, result: EvalOutput): void {
   for (const [category, baselineFailureRate] of Object.entries(baseline.maxFailureRateByCategory)) {
     const currentStat = summary.categoryStats[category];
     if (!currentStat) {
-      console.log(`  ⚠️  ${category}: No data in current run (baseline: ${formatPercent(baselineFailureRate)})`);
+      console.log(
+        `  ⚠️  ${category}: No data in current run (baseline: ${formatPercent(baselineFailureRate)})`,
+      );
       hasSignificantDrift = true;
       continue;
     }
@@ -84,10 +103,14 @@ function generateDriftReport(baseline: Baseline, result: EvalOutput): void {
 
     if (Math.abs(delta) > 0.01) {
       // Significant drift if >1% difference
-      console.log(`    Drift:    ${formatDelta(currentFailureRate, baselineFailureRate)} ${delta > 0 ? "⚠️  DEGRADED" : "✅ IMPROVED"}`);
+      console.log(
+        `    Drift:    ${formatDelta(currentFailureRate, baselineFailureRate)} ${delta > 0 ? "⚠️  DEGRADED" : "✅ IMPROVED"}`,
+      );
       if (delta > 0) hasSignificantDrift = true;
     } else {
-      console.log(`    Drift:    ${formatDelta(currentFailureRate, baselineFailureRate)} (minimal)`);
+      console.log(
+        `    Drift:    ${formatDelta(currentFailureRate, baselineFailureRate)} (minimal)`,
+      );
     }
     console.log();
   }
@@ -125,7 +148,9 @@ function generateDriftReport(baseline: Baseline, result: EvalOutput): void {
   console.log();
 
   console.log(`📅 Evaluation run: ${summary.runAt}`);
-  console.log(`📦 Total tasks: ${summary.totalTasks} (Passed: ${summary.passedTasks}, Failed: ${summary.failedTasks})`);
+  console.log(
+    `📦 Total tasks: ${summary.totalTasks} (Passed: ${summary.passedTasks}, Failed: ${summary.failedTasks})`,
+  );
   console.log();
 }
 

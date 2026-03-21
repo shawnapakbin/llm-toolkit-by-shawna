@@ -29,7 +29,7 @@ Safe Git version control operations for LLM software engineer agents.
 
 ```bash
 # Optional: Set workspace root (defaults to current directory)
-export GIT_WORKSPACE_ROOT=/path/to/workspace
+export GIT_WORKSPACE_ROOT="$(pwd)"
 
 # Optional: HTTP server port (defaults to 3011)
 export PORT=3011
@@ -73,9 +73,9 @@ Add to LM Studio `mcp.json`:
   "mcpServers": {
     "git": {
       "command": "node",
-      "args": ["/path/to/Git/dist/mcp-server.js"],
+      "args": ["Git/dist/mcp-server.js"],
       "env": {
-        "GIT_WORKSPACE_ROOT": "/path/to/your/repository"
+        "GIT_WORKSPACE_ROOT": "."
       }
     }
   }
@@ -415,4 +415,5 @@ Git tool follows the dual-server pattern with shared handler logic:
 
 ## License
 
-MIT
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties). See ../LICENSE.
+Original Author: Shawna Pakbin

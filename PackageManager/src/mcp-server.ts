@@ -1,21 +1,59 @@
-import dotenv from "dotenv";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import dotenv from "dotenv";
 import { z } from "zod";
 import {
+  auditVulnerabilities,
   detectPackageManager,
   installPackages,
-  updatePackages,
-  auditVulnerabilities,
   listOutdated,
-  removeDependencies,
-  viewDependencies,
   lockDependencies,
+  removeDependencies,
+  updatePackages,
+  viewDependencies,
 } from "./package-manager";
 import { getPackageManagerWorkspaceRoot } from "./policy";
 
 dotenv.config();
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+type InstallPackagesToolInput = {
+  packages: string[];
+  dev?: boolean;
+  global?: boolean;
+};
+
+type UpdatePackagesToolInput = {
+  packages?: string[];
+  all?: boolean;
+  check?: boolean;
+};
+
+type AuditVulnerabilitiesToolInput = {
+  fix?: boolean;
+  severity?: "low" | "moderate" | "high" | "critical";
+};
+
+type ListOutdatedToolInput = {
+  format?: "list" | "json" | "outdated";
+};
+
+type RemoveDependenciesToolInput = {
+  packages: string[];
+};
+
+type ViewDependenciesToolInput = {
+  depth?: number;
+  onlyDirect?: boolean;
+};
+
+type LockDependenciesToolInput = {
+  frozen?: boolean;
+};
 
 const server = new McpServer({
   name: "package-manager-tool",
@@ -28,7 +66,7 @@ server.registerTool(
   {
     description:
       "Auto-detect the package manager used in the project (npm, pip, cargo, maven, gradle, go). Returns detected manager and list of available managers.",
-    inputSchema: {} as any,
+    inputSchema: {},
   },
   async (): Promise<CallToolResult> => {
     const repoPath = getPackageManagerWorkspaceRoot();
@@ -39,10 +77,12 @@ server.registerTool(
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         structuredContent: result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Package manager detection failed: ${error.message}` }],
+        content: [
+          { type: "text", text: `Package manager detection failed: ${getErrorMessage(error)}` },
+        ],
       };
     }
   },
@@ -61,9 +101,9 @@ server.registerTool(
         .describe("Package names to install (e.g., ['express', 'lodash'])"),
       dev: z.boolean().optional().describe("Install as development dependency (default: false)"),
       global: z.boolean().optional().describe("Install globally (default: false)"),
-    } as any,
+    },
   },
-  async ({ packages, dev, global }: any): Promise<CallToolResult> => {
+  async ({ packages, dev, global }: InstallPackagesToolInput): Promise<CallToolResult> => {
     const repoPath = getPackageManagerWorkspaceRoot();
     try {
       const detection = await detectPackageManager(repoPath);
@@ -77,17 +117,17 @@ server.registerTool(
       const result = await installPackages(
         { packages, dev, global },
         detection.detected.manager,
-        repoPath
+        repoPath,
       );
       return {
         isError: false,
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         structuredContent: result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Install failed: ${error.message}` }],
+        content: [{ type: "text", text: `Install failed: ${getErrorMessage(error)}` }],
       };
     }
   },
@@ -97,21 +137,17 @@ server.registerTool(
 server.registerTool(
   "update_packages",
   {
-    description:
-      "Update packages to newer versions. Can update specific packages or all packages.",
+    description: "Update packages to newer versions. Can update specific packages or all packages.",
     inputSchema: {
-      packages: z
-        .array(z.string())
-        .optional()
-        .describe("Specific packages to update"),
+      packages: z.array(z.string()).optional().describe("Specific packages to update"),
       all: z.boolean().optional().describe("Update all packages (default: false)"),
       check: z
         .boolean()
         .optional()
         .describe("Only check for updates without installing (default: false)"),
-    } as any,
+    },
   },
-  async ({ packages, all, check }: any): Promise<CallToolResult> => {
+  async ({ packages, all, check }: UpdatePackagesToolInput): Promise<CallToolResult> => {
     const repoPath = getPackageManagerWorkspaceRoot();
     try {
       const detection = await detectPackageManager(repoPath);
@@ -122,16 +158,20 @@ server.registerTool(
         };
       }
 
-      const result = await updatePackages({ packages, all, check }, detection.detected.manager, repoPath);
+      const result = await updatePackages(
+        { packages, all, check },
+        detection.detected.manager,
+        repoPath,
+      );
       return {
         isError: false,
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         structuredContent: result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Update failed: ${error.message}` }],
+        content: [{ type: "text", text: `Update failed: ${getErrorMessage(error)}` }],
       };
     }
   },
@@ -149,9 +189,9 @@ server.registerTool(
         .enum(["low", "moderate", "high", "critical"])
         .optional()
         .describe("Filter by severity level"),
-    } as any,
+    },
   },
-  async ({ fix, severity }: any): Promise<CallToolResult> => {
+  async ({ fix, severity }: AuditVulnerabilitiesToolInput): Promise<CallToolResult> => {
     const repoPath = getPackageManagerWorkspaceRoot();
     try {
       const detection = await detectPackageManager(repoPath);
@@ -162,16 +202,20 @@ server.registerTool(
         };
       }
 
-      const result = await auditVulnerabilities({ fix, severity }, detection.detected.manager, repoPath);
+      const result = await auditVulnerabilities(
+        { fix, severity },
+        detection.detected.manager,
+        repoPath,
+      );
       return {
         isError: false,
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         structuredContent: result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Audit failed: ${error.message}` }],
+        content: [{ type: "text", text: `Audit failed: ${getErrorMessage(error)}` }],
       };
     }
   },
@@ -187,9 +231,9 @@ server.registerTool(
         .enum(["list", "json", "outdated"])
         .optional()
         .describe("Output format (default: list)"),
-    } as any,
+    },
   },
-  async ({ format }: any): Promise<CallToolResult> => {
+  async ({ format }: ListOutdatedToolInput): Promise<CallToolResult> => {
     const repoPath = getPackageManagerWorkspaceRoot();
     try {
       const detection = await detectPackageManager(repoPath);
@@ -206,10 +250,10 @@ server.registerTool(
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         structuredContent: result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isError: true,
-        content: [{ type: "text", text: `List outdated failed: ${error.message}` }],
+        content: [{ type: "text", text: `List outdated failed: ${getErrorMessage(error)}` }],
       };
     }
   },
@@ -221,13 +265,10 @@ server.registerTool(
   {
     description: "Remove packages from the project.",
     inputSchema: {
-      packages: z
-        .array(z.string())
-        .min(1)
-        .describe("Package names to remove"),
-    } as any,
+      packages: z.array(z.string()).min(1).describe("Package names to remove"),
+    },
   },
-  async ({ packages }: any): Promise<CallToolResult> => {
+  async ({ packages }: RemoveDependenciesToolInput): Promise<CallToolResult> => {
     const repoPath = getPackageManagerWorkspaceRoot();
     try {
       const detection = await detectPackageManager(repoPath);
@@ -244,10 +285,10 @@ server.registerTool(
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         structuredContent: result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Remove failed: ${error.message}` }],
+        content: [{ type: "text", text: `Remove failed: ${getErrorMessage(error)}` }],
       };
     }
   },
@@ -266,13 +307,10 @@ server.registerTool(
         .nonnegative()
         .optional()
         .describe("Tree depth to display (default: 0 = all)"),
-      onlyDirect: z
-        .boolean()
-        .optional()
-        .describe("Show only direct dependencies (default: false)"),
-    } as any,
+      onlyDirect: z.boolean().optional().describe("Show only direct dependencies (default: false)"),
+    },
   },
-  async ({ depth, onlyDirect }: any): Promise<CallToolResult> => {
+  async ({ depth, onlyDirect }: ViewDependenciesToolInput): Promise<CallToolResult> => {
     const repoPath = getPackageManagerWorkspaceRoot();
     try {
       const detection = await detectPackageManager(repoPath);
@@ -283,16 +321,20 @@ server.registerTool(
         };
       }
 
-      const result = await viewDependencies({ depth, onlyDirect }, detection.detected.manager, repoPath);
+      const result = await viewDependencies(
+        { depth, onlyDirect },
+        detection.detected.manager,
+        repoPath,
+      );
       return {
         isError: false,
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         structuredContent: result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isError: true,
-        content: [{ type: "text", text: `View dependencies failed: ${error.message}` }],
+        content: [{ type: "text", text: `View dependencies failed: ${getErrorMessage(error)}` }],
       };
     }
   },
@@ -309,9 +351,9 @@ server.registerTool(
         .boolean()
         .optional()
         .describe("Use frozen/ci mode for reproducible installs (default: true)"),
-    } as any,
+    },
   },
-  async ({ frozen }: any): Promise<CallToolResult> => {
+  async ({ frozen }: LockDependenciesToolInput): Promise<CallToolResult> => {
     const repoPath = getPackageManagerWorkspaceRoot();
     try {
       const detection = await detectPackageManager(repoPath);
@@ -328,10 +370,10 @@ server.registerTool(
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         structuredContent: result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Lock dependencies failed: ${error.message}` }],
+        content: [{ type: "text", text: `Lock dependencies failed: ${getErrorMessage(error)}` }],
       };
     }
   },

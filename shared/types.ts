@@ -1,6 +1,6 @@
 /**
  * Shared Types for LLM Toolkit
- * 
+ *
  * Unified response envelope and error codes used across all tools.
  */
 
@@ -28,22 +28,22 @@ export enum ErrorCode {
  * Unified response envelope for all tool operations.
  * Ensures consistent structure across HTTP and MCP interfaces.
  */
-export interface ToolResponse<T = any> {
+export interface ToolResponse<T = unknown> {
   /** Indicates if the operation completed successfully */
   success: boolean;
-  
+
   /** Error code if operation failed */
   errorCode?: ErrorCode;
-  
+
   /** Human-readable error message if operation failed */
   errorMessage?: string;
-  
+
   /** Operation result data if successful */
   data?: T;
-  
+
   /** Operation duration in milliseconds */
   timingMs?: number;
-  
+
   /** Trace ID for request tracking and debugging */
   traceId?: string;
 }
@@ -53,11 +53,11 @@ export interface ToolResponse<T = any> {
  */
 export class OperationTimer {
   private startTime: number;
-  
+
   constructor() {
     this.startTime = Date.now();
   }
-  
+
   /**
    * Get elapsed time in milliseconds since timer creation.
    */
@@ -82,7 +82,7 @@ export function generateTraceId(): string {
 export function createSuccessResponse<T>(
   data: T,
   timingMs?: number,
-  traceId?: string
+  traceId?: string,
 ): ToolResponse<T> {
   return {
     success: true,
@@ -99,7 +99,7 @@ export function createErrorResponse(
   errorCode: ErrorCode,
   errorMessage: string,
   timingMs?: number,
-  traceId?: string
+  traceId?: string,
 ): ToolResponse {
   return {
     success: false,

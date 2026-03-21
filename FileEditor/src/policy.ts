@@ -3,7 +3,10 @@ import path from "path";
 /**
  * Validate and sanitize file path to prevent directory traversal
  */
-export function validatePath(filePath: string, workspaceRoot: string): { valid: boolean; error?: string } {
+export function validatePath(
+  filePath: string,
+  workspaceRoot: string,
+): { valid: boolean; error?: string } {
   // Normalize paths
   const normalized = path.normalize(filePath);
   const absolutePath = path.resolve(workspaceRoot, normalized);
@@ -77,7 +80,10 @@ export function isBlockedPath(filePath: string): { blocked: boolean; reason?: st
 /**
  * Check if file extension is allowed for write operations
  */
-export function isAllowedExtensionForWrite(filePath: string): { allowed: boolean; reason?: string } {
+export function isAllowedExtensionForWrite(filePath: string): {
+  allowed: boolean;
+  reason?: string;
+} {
   const ext = path.extname(filePath).toLowerCase();
 
   // Block writing to executable and binary formats
@@ -112,7 +118,10 @@ export function isAllowedExtensionForWrite(filePath: string): { allowed: boolean
 /**
  * Validate maximum file size for read operations
  */
-export function validateFileSize(size: number, maxSize: number = 10 * 1024 * 1024): { valid: boolean; error?: string } {
+export function validateFileSize(
+  size: number,
+  maxSize: number = 10 * 1024 * 1024,
+): { valid: boolean; error?: string } {
   if (size > maxSize) {
     return {
       valid: false,
