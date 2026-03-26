@@ -353,16 +353,21 @@ export function registerDefaultTools(registry: ToolRegistry = defaultRegistry): 
     status: ToolStatus.UNKNOWN,
   });
 
-  // Browserless Tool
+  // Browserless Tool (MCP Cloud)
+  const browserlessToken = process.env.BROWSERLESS_API_TOKEN || process.env.BROWSERLESS_API_KEY || "";
+  const browserlessBaseUrl = "https://mcp.browserless.io/mcp";
+  const browserlessEndpoint = browserlessToken
+    ? `${browserlessBaseUrl}?token=${browserlessToken}`
+    : browserlessBaseUrl;
   registry.register({
     id: "browserless",
     name: "Browserless",
-    description: "Browser automation with Browserless.io API",
+    description: "Browser automation with Browserless MCP Cloud API",
     version: "1.0.0",
     capabilities: [ToolCapability.READ, ToolCapability.EXECUTE],
-    httpEndpoint: `http://localhost:3003`,
-    healthEndpoint: `http://localhost:3003/health`,
-    schemaEndpoint: `http://localhost:3003/health`, // Uses health endpoint
+    httpEndpoint: browserlessEndpoint,
+    healthEndpoint: browserlessEndpoint, // MCP endpoint health
+    schemaEndpoint: browserlessEndpoint, // MCP endpoint schema
     status: ToolStatus.UNKNOWN,
   });
 

@@ -1,4 +1,3 @@
-
 # LLM Toolkit by Shawna
 
 **Enhanced Feature: Unified Tool Call Normalization**
@@ -239,6 +238,36 @@ npm run mcp:sync-lmstudio
 
 **Note**: For production use, prefer `npm run mcp:print-config` or `npm run mcp:sync-lmstudio` so paths are generated automatically for your machine.  
 Phase 2 will introduce unified orchestrator MCP server and multi-interface launchers.
+
+## Browserless MCP Cloud Usage
+
+### Quick Setup for LLM/Agent Workflows
+
+- **Get a Browserless API token** from https://browserless.io/account/
+- **Set your token** in your environment (recommended: `.env` or system env):
+  - `BROWSERLESS_API_TOKEN=your-token-here`
+- **No hardcoding:** Never commit your token to version control.
+
+### Tool Registration (Cloud)
+- The Browserless tool is automatically registered to the official MCP endpoint:
+  - Endpoint: `https://mcp.browserless.io/mcp?token=YOUR_TOKEN`
+  - The token is loaded from `BROWSERLESS_API_TOKEN` or `BROWSERLESS_API_KEY`.
+- For local development, the tool can run on `http://localhost:3003` (see Browserless/README.md for details).
+
+### LLM/Agent Integration
+- LLMs and agents should use the MCP endpoint for all browser automation tasks.
+- Supported operations: screenshots, PDFs, scraping, content extraction, BrowserQL, and more.
+- For advanced usage, see [Browserless/README.md](Browserless/README.md).
+
+### Example `.env` file
+```
+BROWSERLESS_API_TOKEN=your-browserless-api-token-here
+```
+
+### Troubleshooting
+- If you see authentication errors, verify your token and that it is set in the environment.
+- For protocol errors, ensure you are using the correct endpoint (MCP for cloud, HTTP for local).
+- See [Browserless official docs](https://docs.browserless.io/) for more.
 
 ## Testing & CI/CD
 

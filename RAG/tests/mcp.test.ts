@@ -1,3 +1,50 @@
+  test("ingest with dynamic docs URL triggers Browserless fallback and BrowserQL guidance", async () => {
+    // Mock DocumentScraper to return empty content
+    const fetchMock = jest.fn(async (input: string) => {
+      if (input.includes("read_document")) {
+        return jsonResponse({ success: true, data: { content: "" } });
+      }
+      // Simulate Browserless MCP returning BrowserQL guidance for dynamic docs
+      if (input.includes("browserless_content")) {
+        return jsonResponse({
+          success: false,
+          error: "Dynamic documentation site detected. Use BrowserQL for robust content extraction.",
+          guidance: "This site requires BrowserQL (browserless_bql) for reliable ingestion. Example: { query: 'query { pageText(url: \\\"https://browserless-docs.mcp.kapa.ai\\\") { text } }' }",
+          recommendedTool: "browserless_bql",
+          url: "https://browserless-docs.mcp.kapa.ai",
+        });
+      }
+      return jsonResponse({ success: false, error: "unexpected url" }, false);
+    });
+
+    Object.defineProperty(global, "fetch", {
+      configurable: true,
+      writable: true,
+      value: fetchMock,
+    });
+
+    const responseRaw = await client.callTool({
+      name: "rag_knowledge",
+      arguments: {
+        action: "ingest_documents",
+        payload: {
+          approvalInterviewId: "approved-dynamic-docs",
+          documents: [
+            {
+              url: "https://browserless-docs.mcp.kapa.ai",
+              title: "Dynamic Docs Example",
+            },
+          ],
+        },
+      },
+    });
+
+    const response = parseToolResult(responseRaw);
+    expect(response.success).toBe(false);
+    expect(response.error).toContain("Dynamic documentation site detected");
+    expect(response.guidance).toContain("BrowserQL");
+    expect(response.recommendedTool).toBe("browserless_bql");
+  });
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createRAGMcpServer } from "../src/mcp-server";
@@ -223,7 +270,7 @@ describe("RAG MCP integration", () => {
     expect(deleted.status).toBe("deleted");
   });
 
-  test("ingest without approval returns approval_required", async () => {
+  test("ingest without approval returns approval_required with approvalToken", async () => {
     const responseRaw = await client.callTool({
       name: "rag_knowledge",
       arguments: {
@@ -237,5 +284,115 @@ describe("RAG MCP integration", () => {
     const response = parseToolResult(responseRaw);
     expect(response.success).toBe(true);
     expect(response.status).toBe("approval_required");
+    // Token must be present so the LLM can present it back after user confirms in chat
+    expect(typeof (response as Record<string, unknown>).approvalToken).toBe("string");
+    expect((response as Record<string, unknown>).approvalToken).toMatch(
+      /^[0-9a-f-]{36}$/i, // UUID v4 format
+    );
+  });
+
+  test("ingest with approvalToken succeeds", async () => {
+    // Step 1: get the approval_required response to receive an approvalToken
+    const approvalRaw = await client.callTool({
+      name: "rag_knowledge",
+      arguments: {
+        action: "ingest_documents",
+        payload: {
+          documents: [{ text: "Token-based approval flow for chat-first ingest." }],
+        },
+      },
+    });
+
+    const approvalResponse = parseToolResult(approvalRaw) as Record<string, unknown>;
+    expect(approvalResponse.status).toBe("approval_required");
+    const approvalToken = approvalResponse.approvalToken as string;
+    expect(approvalToken).toBeTruthy();
+
+    // Step 2: retry with the token — should succeed
+    const ingestRaw = await client.callTool({
+      name: "rag_knowledge",
+      arguments: {
+        action: "ingest_documents",
+        payload: {
+          approvalToken,
+          documents: [{ text: "Token-based approval flow for chat-first ingest." }],
+        },
+      },
+    });
+
+    const ingest = parseToolResult(ingestRaw);
+    expect(ingest.success).toBe(true);
+    expect(ingest.status).toBe("ingested");
+    expect(ingest.processed).toBe(1);
+  });
+
+  test("approvalToken is single-use", async () => {
+    const approvalRaw = await client.callTool({
+      name: "rag_knowledge",
+      arguments: {
+        action: "ingest_documents",
+        payload: {
+          documents: [{ text: "Single-use token test." }],
+        },
+      },
+    });
+
+    const approvalResponse = parseToolResult(approvalRaw) as Record<string, unknown>;
+    const approvalToken = approvalResponse.approvalToken as string;
+
+    // First use — should succeed
+    await client.callTool({
+      name: "rag_knowledge",
+      arguments: {
+        action: "ingest_documents",
+        payload: {
+          approvalToken,
+          documents: [{ text: "Single-use token test." }],
+        },
+      },
+    });
+
+    // Second use of the same token — should fail
+    const retryRaw = await client.callTool({
+      name: "rag_knowledge",
+      arguments: {
+        action: "ingest_documents",
+        payload: {
+          approvalToken,
+          documents: [{ text: "Single-use token test." }],
+        },
+      },
+    });
+
+    const retry = parseToolResult(retryRaw);
+    expect(retry.success).toBe(false);
+    expect(retry.errorCode).toBe("POLICY_BLOCKED");
+  });
+
+  test("bypass mode skips approval gate", async () => {
+    const original = process.env.RAG_BYPASS_APPROVAL;
+    try {
+      process.env.RAG_BYPASS_APPROVAL = "true";
+
+      const responseRaw = await client.callTool({
+        name: "rag_knowledge",
+        arguments: {
+          action: "ingest_documents",
+          payload: {
+            documents: [{ text: "Bypass mode allows ingest without approval." }],
+          },
+        },
+      });
+
+      const response = parseToolResult(responseRaw);
+      expect(response.success).toBe(true);
+      expect(response.status).toBe("ingested");
+    } finally {
+      if (original === undefined) {
+        delete process.env.RAG_BYPASS_APPROVAL;
+      } else {
+        process.env.RAG_BYPASS_APPROVAL = original;
+      }
+    }
   });
 });

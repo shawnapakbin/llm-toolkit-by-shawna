@@ -1,17 +1,17 @@
 {
-  "traceId": "1774060606314-4d86zqjv",
+  "traceId": "1774498306359-87cttg99",
   "workflowId": "eval-web-summary-1",
   "workflowName": "Web Retrieval Simulation",
   "status": "success",
-  "durationMs": 0,
+  "durationMs": 1,
   "steps": [
     {
       "id": "fetch-page",
       "toolId": "webbrowser",
       "success": true,
       "retries": 0,
-      "durationMs": 0
+      "durationMs": 1
     }
   ],
-  "generatedAt": "2026-03-21T02:36:46.314Z"
+  "generatedAt": "2026-03-26T04:11:46.360Z"
 }

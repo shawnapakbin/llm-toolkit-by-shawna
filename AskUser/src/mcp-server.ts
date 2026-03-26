@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OperationTimer, generateTraceId } from "@shared/types";
+import { normalizeToolCall } from "@shared/types/dist/toolCallNormalizer";
 import dotenv from "dotenv";
 import { z } from "zod";
 import { handleAskUserRequest } from "./ask-user";
@@ -80,7 +81,16 @@ export function createAskUserMcpServer(): McpServer {
     async (input): Promise<CallToolResult> => {
       const timer = new OperationTimer();
       const traceId = generateTraceId();
-      const { action, payload } = input as {
+      // Normalize tool call input (handles legacy and canonical formats)
+      let normalized: any = input;
+      try {
+        // If input is a tool call, extract action/payload for AskUserRequest
+        const toolCall = normalizeToolCall(input, { taskRunId: traceId });
+        normalized = JSON.parse(toolCall.input_params);
+      } catch {
+        // fallback: assume input is already AskUserRequest shape
+      }
+      const { action, payload } = normalized as {
         action: AskUserRequest["action"];
         payload: AskUserRequest["payload"];
       };

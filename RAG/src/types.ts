@@ -21,6 +21,7 @@ export type IngestDocumentsInput = {
   chunkSizeTokens?: number;
   overlapTokens?: number;
   approvalInterviewId?: string;
+  approvalToken?: string;
 };
 
 export type QueryKnowledgeInput = {
@@ -39,6 +40,7 @@ export type ListSourcesInput = {
 export type DeleteSourceInput = {
   sourceId: string;
   approvalInterviewId?: string;
+  approvalToken?: string;
 };
 
 export type ReindexSourceInput = {
@@ -46,6 +48,7 @@ export type ReindexSourceInput = {
   chunkSizeTokens?: number;
   overlapTokens?: number;
   approvalInterviewId?: string;
+  approvalToken?: string;
 };
 
 export type RagRequest = {

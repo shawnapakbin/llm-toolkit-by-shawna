@@ -62,6 +62,12 @@ export function createRAGMcpServer(): McpServer {
                 .string()
                 .optional()
                 .describe("Approval interview ID if approval was obtained"),
+              approvalToken: z
+                .string()
+                .optional()
+                .describe(
+                  "One-time approval token returned by a previous approval_required response",
+                ),
             })
             .strict(),
         }),
@@ -101,6 +107,12 @@ export function createRAGMcpServer(): McpServer {
                 .string()
                 .optional()
                 .describe("Required if source deletion needs approval"),
+              approvalToken: z
+                .string()
+                .optional()
+                .describe(
+                  "One-time approval token returned by a previous approval_required response",
+                ),
             })
             .strict(),
         }),
@@ -112,6 +124,12 @@ export function createRAGMcpServer(): McpServer {
               chunkSizeTokens: z.number().int().min(100).max(4000).optional(),
               overlapTokens: z.number().int().min(0).max(500).optional(),
               approvalInterviewId: z.string().optional(),
+              approvalToken: z
+                .string()
+                .optional()
+                .describe(
+                  "One-time approval token returned by a previous approval_required response",
+                ),
             })
             .strict(),
         }),

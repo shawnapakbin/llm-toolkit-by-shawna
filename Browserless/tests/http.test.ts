@@ -1,3 +1,17 @@
+  describe("POST /content (dynamic docs guidance)", () => {
+    it("should return BrowserQL guidance for known dynamic docs domains", async () => {
+      const response = await request(app).post("/content").send({
+        apiKey: "test-api-key-1234567890",
+        url: "https://browserless-docs.mcp.kapa.ai",
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain("Dynamic documentation site detected");
+      expect(response.body.guidance).toContain("BrowserQL");
+      expect(response.body.recommendedTool).toBe("browserless_bql");
+    });
+  });
 /**
  * Browserless HTTP Endpoint Integration Tests
  *

@@ -93,52 +93,98 @@ npm start
 
 The server will run on `http://localhost:3003` (or the port specified in `.env`).
 
-## Available Tools
+# Browserless MCP Tool
 
-### 1. browserless_screenshot
-Captures a screenshot of a web page.
+This package provides MCP tool integration for the Browserless API, enabling screenshot, PDF, scraping, content extraction, browser automation, and more via BrowserQL and Puppeteer code.
 
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to screenshot
-- `fullPage` (optional): Capture full scrollable page
-- `type` (optional): Image format (png, jpeg, webp)
-- `quality` (optional): Image quality 0-100
-- `selector` (optional): CSS selector for specific element
-- `waitForTimeout` (optional): Wait time before screenshot
-- `waitForSelector` (optional): Wait for element before screenshot
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
+## Tools
 
-**Example:**
-```json
+- `browserless_captureScreenshot`: Capture a screenshot of a web page (full page or element). Example: `{ url: 'https://example.com', fullPage: true }`
+- `browserless_generatePDF`: Generate a PDF from a web page. Example: `{ url: 'https://example.com', format: 'A4' }`
+- `browserless_extractElements`: Extract structured data from a web page using CSS selectors. Example: `{ url: 'https://example.com', elements: [{ selector: 'h1' }] }`
+- `browserless_extractContent`: Extract the full HTML and text content from a web page. Example: `{ url: 'https://example.com' }`
+- `browserless_bypassProtection`: Bypass bot detection and CAPTCHAs on protected websites. Example: `{ url: 'https://protected.com', content: true, screenshot: true }`
+- `browserless_executeBrowserQL`: Execute complex browser automation using BrowserQL (GraphQL-based language). Example: `{ query: 'mutation { click(selector: "#btn") }' }`
+- `browserless_executePuppeteerCode`: Execute custom Puppeteer JavaScript code server-side. Example: `{ code: 'await page.goto(\'https://example.com\')' }`
+- `browserless_downloadFile`: Download files that Chrome downloads during Puppeteer code execution. Example: `{ code: 'await page.click(\'#download\')' }`
+- `browserless_exportContent`: Fetch a URL and stream its native content type (HTML, PDF, images, etc.). Example: `{ url: 'https://example.com', includeResources: true }`
+- `browserless_runLighthouseAudit`: Run Lighthouse performance audit on a URL. Example: `{ url: 'https://example.com' }`
+
+## Usage
+
+Each tool requires an API key (set via environment or input). See individual tool descriptions for parameters and examples.
+
+### Example: Capture Screenshot
+
+```
 {
-  "url": "https://example.com",
-  "fullPage": true,
-  "type": "png"
+  "tool": "browserless_captureScreenshot",
+  "params": {
+    "url": "https://example.com",
+    "fullPage": true
+  }
 }
 ```
 
-### 2. browserless_pdf
-Generates a PDF from a web page.
+### Example: Generate PDF
 
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to convert to PDF
-- `format` (optional): Page format (A4, Letter, Legal, etc.)
-- `landscape` (optional): Use landscape orientation
-- `printBackground` (optional): Include background graphics
-- `scale` (optional): Scale factor (0.1-2)
-- `waitForTimeout` (optional): Wait time before PDF generation
-- `waitForSelector` (optional): Wait for element before PDF
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
-
-**Example:**
-```json
+```
 {
-  "url": "https://example.com",
-  "format": "A4",
+  "tool": "browserless_generatePDF",
+  "params": {
+    "url": "https://example.com",
+    "format": "A4"
+  }
+}
+```
+
+### Example: Extract Elements
+
+```
+{
+  "tool": "browserless_extractElements",
+  "params": {
+    "url": "https://example.com",
+    "elements": [{ "selector": "h1" }]
+  }
+}
+```
+
+### Example: Execute BrowserQL
+
+```
+{
+  "tool": "browserless_executeBrowserQL",
+  "params": {
+    "query": "mutation { click(selector: \"#btn\") }"
+  }
+}
+```
+
+### Example: Run Lighthouse Audit
+
+```
+{
+  "tool": "browserless_runLighthouseAudit",
+  "params": {
+    "url": "https://example.com"
+  }
+}
+```
+
+## Parameters
+
+- All tools accept an optional `apiKey` (string) if not set in the environment.
+- `region` (enum): "production-sfo", "production-lon", "production-ams" (optional)
+- `timeoutMs` (number): Request timeout in milliseconds (optional)
+- See each tool for specific parameters and examples.
+
+## Notes
+
+- For dynamic documentation sites (e.g., kapa.ai), use `browserless_executeBrowserQL` for robust extraction.
+- For advanced automation, use `browserless_executePuppeteerCode` with custom JavaScript.
+
+---
   "landscape": false,
   "printBackground": true
 }
@@ -167,8 +213,9 @@ Extracts structured data using CSS selectors.
 }
 ```
 
+
 ### 4. browserless_content
-Extracts full HTML and text content from a page.
+Extracts full HTML and text content from a page. **For dynamic documentation domains (e.g., browserless-docs.mcp.kapa.ai, docs.browserless.io, kapa.ai), this tool will return explicit guidance to use BrowserQL (`browserless_bql`) for robust content extraction.**
 
 **Parameters:**
 - `apiKey` (optional): Browserless API key
@@ -178,7 +225,23 @@ Extracts full HTML and text content from a page.
 - `region` (optional): Regional endpoint
 - `timeoutMs` (optional): Request timeout
 
-**Example:**
+**Dynamic Docs Guidance:**
+If the URL matches a known dynamic docs domain, the response will include:
+- `recommendedTool: "browserless_bql"`
+- `guidance`: Example BrowserQL query for robust extraction
+
+**Example (dynamic docs):**
+```json
+{
+  "success": false,
+  "error": "Dynamic documentation site detected. Use BrowserQL for robust content extraction.",
+  "guidance": "This site requires BrowserQL (browserless_bql) for reliable ingestion. Example: { query: 'query { pageText(url: \"https://browserless-docs.mcp.kapa.ai\") { text } }' }",
+  "recommendedTool": "browserless_bql",
+  "url": "https://browserless-docs.mcp.kapa.ai"
+}
+```
+
+**Example (standard site):**
 ```json
 {
   "url": "https://example.com"
@@ -460,6 +523,32 @@ Response includes `browserWSEndpoint` to connect with Puppeteer:
 const endpoint = result.data.endpoint.browserWSEndpoint;
 const browser = await puppeteer.connect({ browserWSEndpoint: endpoint });
 ```
+
+## MCP Cloud Usage (Recommended for LLMs/Agents)
+
+For cloud-based LLM and agent workflows, use the official Browserless MCP endpoint:
+
+- **Endpoint:** `https://mcp.browserless.io/mcp?token=YOUR_TOKEN`
+- **Token:** Set `BROWSERLESS_API_TOKEN` or `BROWSERLESS_API_KEY` in your environment (see `.env.example`).
+- **No hardcoding:** Never commit your API token to version control.
+
+### Example `.env` for MCP Cloud
+```
+BROWSERLESS_API_TOKEN=your-browserless-api-token-here
+```
+
+### Switching Between Local and Cloud
+- **Cloud:** Uses MCP endpoint and API token for authentication.
+- **Local:** Uses HTTP server at `http://localhost:3003` (for development/testing only).
+
+### LLM/Agent Integration
+- LLMs and agents should use the MCP endpoint for all browser automation tasks.
+- Supported operations: screenshots, PDFs, scraping, content extraction, BrowserQL, and more.
+
+### Troubleshooting
+- Authentication errors: Check your token and environment variable.
+- Protocol errors: Ensure you are using the correct endpoint for your workflow.
+- See [Browserless official docs](https://docs.browserless.io/) for more details.
 
 ## Troubleshooting
 

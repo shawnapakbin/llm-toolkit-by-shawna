@@ -3,6 +3,7 @@
  */
 
 import { ErrorCode, OperationTimer, generateTraceId } from "@shared/types";
+import { normalizeToolCall } from "../../shared/toolCallNormalizer";
 import { type Logger, getLogger } from "../../Observability/src/logger";
 import { type MetricsRegistry, getRegistry } from "../../Observability/src/metrics";
 import { SpanStatus, type Tracer, getTracer } from "../../Observability/src/tracer";
@@ -556,6 +557,18 @@ export class AgentRunner {
     let lastErrorCode: ErrorCode = ErrorCode.EXECUTION_FAILED;
     let retries = 0;
 
+    // Normalize tool call input before dispatch (ensures canonical format)
+    let normalizedInput: Record<string, unknown> = step.input;
+    try {
+      // Only normalize if input looks like a tool call payload (string/object)
+      // and not already canonical (skip if already structured for the tool)
+      // We assume normalization is idempotent for canonical input
+      normalizedInput = normalizeToolCall(step.input, { taskRunId: step.id });
+    } catch (err) {
+      // If normalization fails, fallback to original input (legacy tools may not need normalization)
+      normalizedInput = step.input;
+    }
+
     for (let attempt = 0; attempt <= policy.maxRetries; attempt++) {
       if (attempt > 0) {
         retries++;
@@ -570,7 +583,7 @@ export class AgentRunner {
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(step.input),
+          body: JSON.stringify(normalizedInput),
           signal: AbortSignal.timeout(timeoutMs),
         });
 

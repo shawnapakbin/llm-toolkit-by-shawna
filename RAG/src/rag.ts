@@ -36,6 +36,59 @@ const DOC_SCRAPER_ENDPOINT =
 const ASK_USER_ENDPOINT =
   process.env.RAG_ASK_USER_ENDPOINT ?? "http://localhost:3338/tools/ask_user_interview";
 
+const APPROVAL_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+type PendingApprovalToken = {
+  action: string;
+  expiresAt: number;
+  used: boolean;
+};
+
+// Short-lived approval tokens for the chat-first approval flow (no HTTP dependency).
+// Cleared on process restart — intentional; approval context should not persist across restarts.
+const pendingApprovalTokens = new Map<string, PendingApprovalToken>();
+
+function createApprovalToken(action: string): string {
+  const token = crypto.randomUUID();
+  // Prune stale entries before inserting
+  for (const [key, entry] of pendingApprovalTokens.entries()) {
+    if (entry.expiresAt <= Date.now() || entry.used) {
+      pendingApprovalTokens.delete(key);
+    }
+  }
+  pendingApprovalTokens.set(token, {
+    action,
+    expiresAt: Date.now() + APPROVAL_TOKEN_TTL_MS,
+    used: false,
+  });
+  return token;
+}
+
+function redeemApprovalToken(
+  token: string,
+  action: string,
+): { ok: true } | { ok: false; reason: string } {
+  const entry = pendingApprovalTokens.get(token);
+  if (!entry) {
+    return { ok: false, reason: "Approval token not found or already used." };
+  }
+  if (entry.used) {
+    return { ok: false, reason: "Approval token has already been used." };
+  }
+  if (entry.expiresAt <= Date.now()) {
+    pendingApprovalTokens.delete(token);
+    return { ok: false, reason: "Approval token has expired. Please request a new one." };
+  }
+  if (entry.action !== action) {
+    return {
+      ok: false,
+      reason: `Approval token was issued for '${entry.action}', not '${action}'.`,
+    };
+  }
+  entry.used = true;
+  return { ok: true };
+}
+
 type ApprovalResponse = {
   questionId?: string;
   value?: unknown;
@@ -126,41 +179,17 @@ class RAGService {
     this.embeddings = createEmbeddingProvider();
   }
 
-  private async requestApproval(action: string, details: string): Promise<ToolResponse> {
-    const response = await fetch(ASK_USER_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "create",
-        payload: {
-          title: `Approve ${action}`,
-          expiresInSeconds: 1800,
-          questions: [
-            {
-              id: "approve",
-              type: "confirm",
-              required: true,
-              prompt: buildApprovalQuestion(action, details),
-            },
-          ],
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      return createErrorResponse(
-        ErrorCode.EXECUTION_FAILED,
-        "Unable to create approval interview via AskUser.",
-      );
-    }
-
-    const body = (await response.json()) as AskUserResponse;
-
+  private requestApproval(action: string, details: string): ToolResponse {
+    const approvalToken = createApprovalToken(action);
+    const question = buildApprovalQuestion(action, details);
     return createSuccessResponse({
       status: "approval_required",
       action,
-      interviewId: body?.interviewId || body?.data?.interviewId,
-      message: "Approval is required. Submit approvalInterviewId after answering in AskUser.",
+      approvalToken,
+      question,
+      message: `User approval is required before this operation can proceed. Ask the user: "${question}" — If they confirm, retry with approvalToken: "${approvalToken}".`,
+      instructions:
+        "Present the question to the user in chat. On confirmation, call this tool again with the same parameters and add approvalToken to the payload.",
     });
   }
 
@@ -168,64 +197,99 @@ class RAGService {
     action: string,
     details: string,
     approvalInterviewId?: string,
+    approvalToken?: string,
   ): Promise<{ ok: true } | { ok: false; response: ToolResponse }> {
-    if (!approvalInterviewId) {
+    // Env-var bypass: skip approval, log for auditability
+    if (
+      process.env.RAG_BYPASS_APPROVAL === "true" ||
+      process.env.RAG_BYPASS_APPROVAL === "1"
+    ) {
+      console.error(
+        `[RAG] Approval bypassed for '${action}' (RAG_BYPASS_APPROVAL=true) at ${new Date().toISOString()}`,
+      );
+      return { ok: true };
+    }
+
+    // Chat-first token path: no HTTP dependency required
+    if (approvalToken) {
+      const result = redeemApprovalToken(approvalToken, action);
+      if (result.ok) {
+        return { ok: true };
+      }
       return {
         ok: false,
-        response: await this.requestApproval(action, details),
+        response: createErrorResponse(ErrorCode.POLICY_BLOCKED, result.reason),
       };
     }
 
-    const response = await fetch(ASK_USER_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "get",
-        payload: {
-          interviewId: approvalInterviewId,
-        },
-      }),
-    });
+    // AskUser HTTP path: used when the AskUser HTTP server is separately running
+    if (approvalInterviewId) {
+      let response: Response;
+      try {
+        response = await fetch(ASK_USER_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "get",
+            payload: { interviewId: approvalInterviewId },
+          }),
+        });
+      } catch {
+        return {
+          ok: false,
+          response: createErrorResponse(
+            ErrorCode.EXECUTION_FAILED,
+            `AskUser service is unreachable at ${ASK_USER_ENDPOINT}. Use the chat-first approval flow instead: call without approvalInterviewId to receive an approvalToken, confirm with the user, then retry with that approvalToken.`,
+          ),
+        };
+      }
 
-    if (!response.ok) {
+      if (!response.ok) {
+        return {
+          ok: false,
+          response: createErrorResponse(
+            ErrorCode.EXECUTION_FAILED,
+            "Unable to verify approval interview via AskUser.",
+          ),
+        };
+      }
+
+      const body = (await response.json()) as AskUserResponse;
+      const status = body?.status || body?.data?.status;
+      const responses = body?.responses || body?.data?.responses || [];
+      const approval = Array.isArray(responses)
+        ? responses.find((item) => item?.questionId === "approve")
+        : undefined;
+
+      if (status === "answered" && approval?.value === true) {
+        return { ok: true };
+      }
+
+      if (status === "pending") {
+        return {
+          ok: false,
+          response: createSuccessResponse({
+            status: "approval_pending",
+            action,
+            interviewId: approvalInterviewId,
+            message: "Approval interview has not been answered yet.",
+          }),
+        };
+      }
+
       return {
         ok: false,
         response: createErrorResponse(
-          ErrorCode.EXECUTION_FAILED,
-          "Unable to verify approval interview via AskUser.",
+          ErrorCode.POLICY_BLOCKED,
+          "Write operation requires explicit approval and was not approved.",
         ),
       };
     }
 
-    const body = (await response.json()) as AskUserResponse;
-    const status = body?.status || body?.data?.status;
-    const responses = body?.responses || body?.data?.responses || [];
-    const approval = Array.isArray(responses)
-      ? responses.find((item) => item?.questionId === "approve")
-      : undefined;
-
-    if (status === "answered" && approval?.value === true) {
-      return { ok: true };
-    }
-
-    if (status === "pending") {
-      return {
-        ok: false,
-        response: createSuccessResponse({
-          status: "approval_pending",
-          action,
-          interviewId: approvalInterviewId,
-          message: "Approval interview has not been answered yet.",
-        }),
-      };
-    }
-
+    // No token or interview ID — initiate the chat-first approval flow
     return {
       ok: false,
-      response: createErrorResponse(
-        ErrorCode.POLICY_BLOCKED,
-        "Write operation requires explicit approval and was not approved.",
-      ),
+      response: this.requestApproval(action, details),
     };
   }
 
@@ -242,23 +306,79 @@ class RAGService {
       body.url = document.url;
     }
 
-    const response = await fetch(DOC_SCRAPER_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    const payload = (await response.json()) as ScraperResponse;
-    if (!response.ok || payload?.success === false) {
-      throw new Error(payload?.error || payload?.errorMessage || "Document scraping failed.");
+    let response: Response | undefined;
+    let payload: ScraperResponse | undefined;
+    let content: string | undefined;
+    let title: string | undefined;
+    let docScraperError: string | undefined;
+    try {
+      response = await fetch(DOC_SCRAPER_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      payload = (await response.json()) as ScraperResponse;
+      if (!response.ok || payload?.success === false) {
+        docScraperError = payload?.error || payload?.errorMessage || "Document scraping failed.";
+      } else {
+        content = pickDocumentText(payload);
+        title = payload?.title || payload?.data?.title || document.title;
+      }
+    } catch (err) {
+      docScraperError =
+        `DocumentScraper service is unreachable at ${DOC_SCRAPER_ENDPOINT}. Ensure the DocumentScraper HTTP server is running, or provide document content directly via the 'text' field instead.`;
     }
 
-    const content = pickDocumentText(payload);
-    if (!content) {
-      throw new Error("Unable to extract document content.");
+    // If DocumentScraper failed or returned empty, try Browserless as fallback for dynamic/JS docs
+    if ((!content || !content.trim()) && document.url) {
+      try {
+        // Only fallback for known dynamic/docs domains (can expand this list)
+        const dynamicDomains = [
+          "browserless-docs.mcp.kapa.ai",
+          "docs.browserless.io",
+          "kapa.ai",
+        ];
+        const urlHost = (() => {
+          try {
+            return new URL(document.url!).host;
+          } catch {
+            return "";
+          }
+        })();
+        if (dynamicDomains.some((d) => urlHost.endsWith(d))) {
+          // Use Browserless content extraction
+          const browserlessEndpoint = process.env.BROWSERLESS_MCP_ENDPOINT || "http://localhost:3340/tools/browserless_content";
+          const browserlessPayload = {
+            url: document.url,
+            waitForTimeout: 2000,
+          };
+          const browserlessResp = await fetch(browserlessEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(browserlessPayload),
+          });
+          const browserlessResult = await browserlessResp.json();
+          if (browserlessResult.success && browserlessResult.text && browserlessResult.text.trim()) {
+            return { content: browserlessResult.text, title: document.title };
+          } else {
+            throw new Error(
+              `Browserless fallback failed: ${browserlessResult.error || "No content extracted."} (status: ${browserlessResp.status})`,
+            );
+          }
+        }
+      } catch (err) {
+        // If Browserless fallback fails, propagate error below
+        docScraperError = (docScraperError ? docScraperError + "\n" : "") + `Browserless fallback error: ${err}`;
+      }
     }
 
-    const title = payload?.title || payload?.data?.title || document.title;
+    if (!content || !content.trim()) {
+      throw new Error(
+        docScraperError ||
+          "Unable to extract document content. If this is a dynamic/JS documentation site, use Browserless BrowserQL to capture content and ingest via text.",
+      );
+    }
+
     return { content, title };
   }
 
@@ -272,6 +392,7 @@ class RAGService {
       "ingest_documents",
       `${input.documents.length} document(s) will be added or updated in persistent knowledge storage.`,
       input.approvalInterviewId,
+      input.approvalToken,
     );
 
     if (!approval.ok) {
@@ -391,6 +512,7 @@ class RAGService {
       "delete_source",
       `Source '${source.source_key}' with ${source.chunk_count} chunk(s) will be removed.`,
       input.approvalInterviewId,
+      input.approvalToken,
     );
 
     if (!approval.ok) {
@@ -422,6 +544,7 @@ class RAGService {
       "reindex_source",
       `Source '${source.source_key}' will be re-chunked and re-embedded.`,
       input.approvalInterviewId,
+      input.approvalToken,
     );
 
     if (!approval.ok) {

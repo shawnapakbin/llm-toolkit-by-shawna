@@ -1,4 +1,18 @@
 /**
+ * Canonical ToolCall format for tool invocation normalization.
+ */
+export interface ToolCall {
+  id: string;
+  task_run_id: string;
+  tool_name: string;
+  input_params: string;
+  output_result: string;
+  success: boolean;
+  error_code?: string;
+  duration_ms?: number;
+  timestamp: string;
+}
+/**
  * Shared Types for LLM Toolkit
  *
  * Unified response envelope and error codes used across all tools.

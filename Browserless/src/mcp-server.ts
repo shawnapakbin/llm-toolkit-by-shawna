@@ -91,10 +91,10 @@ function getErrorMessage(error: unknown): string {
 
 // Screenshot tool
 registerToolLoose(
-  "browserless_screenshot",
+  "browserless_captureScreenshot",
   {
     description:
-      "Captures a screenshot of a web page using Browserless API. Supports full page, specific selectors, and various image formats. Requires API key.",
+      "Capture a screenshot of a web page (full page or element) using Browserless API. Supports PNG, JPEG, WEBP. Example: { url: 'https://example.com', fullPage: true }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -175,10 +175,10 @@ registerToolLoose(
 
 // PDF generation tool
 registerToolLoose(
-  "browserless_pdf",
+  "browserless_generatePDF",
   {
     description:
-      "Generates a PDF from a web page using Browserless API. Supports various page formats and options.",
+      "Generate a PDF from a web page using Browserless API. Supports page format, orientation, and scale. Example: { url: 'https://example.com', format: 'A4' }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -272,10 +272,10 @@ registerToolLoose(
 
 // Scrape tool
 registerToolLoose(
-  "browserless_scrape",
+  "browserless_extractElements",
   {
     description:
-      "Extracts structured data from a web page using CSS selectors via Browserless API. Returns text, HTML, and attributes of matching elements.",
+      "Extract structured data from a web page using CSS selectors. Returns text, HTML, and attributes. Example: { url: 'https://example.com', elements: [{ selector: 'h1' }] }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -351,10 +351,10 @@ registerToolLoose(
 
 // Content extraction tool
 registerToolLoose(
-  "browserless_content",
+  "browserless_extractContent",
   {
     description:
-      "Extracts the full HTML and text content from a web page using Browserless API. Useful for getting all page content.",
+      "Extract the full HTML and text content from a web page. Use for general content extraction. Example: { url: 'https://example.com' }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -387,6 +387,36 @@ registerToolLoose(
       region?: BrowserlessConfig["region"];
       timeoutMs?: number;
     };
+    // BrowserQL guidance for dynamic docs domains
+    const dynamicDomains = [
+      "browserless-docs.mcp.kapa.ai",
+      "docs.browserless.io",
+      "kapa.ai",
+    ];
+    const urlHost = (() => {
+      try {
+        return new URL(params.url).host;
+      } catch {
+        return "";
+      }
+    })();
+    if (dynamicDomains.some((d) => urlHost.endsWith(d))) {
+      return {
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              success: false,
+              error: "Dynamic documentation site detected. Use BrowserQL for robust content extraction.",
+              guidance: "This site requires BrowserQL (browserless_bql) for reliable ingestion. Example: { query: 'query { pageText(url: \"' + params.url + '\") { text } }' }",
+              recommendedTool: "browserless_bql",
+              url: params.url,
+            }, null, 2),
+          },
+        ],
+      };
+    }
     return executeWithConcurrencyLimit(async () => {
       try {
         const config = getConfig(params.apiKey, params.region, params.timeoutMs);
@@ -417,10 +447,10 @@ registerToolLoose(
 
 // Unblock tool
 registerToolLoose(
-  "browserless_unblock",
+  "browserless_bypassProtection",
   {
     description:
-      "Bypasses bot detection and CAPTCHAs on protected websites using Browserless API. Can return content, cookies, screenshot, and WebSocket endpoint for further automation.",
+      "Bypass bot detection and CAPTCHAs on protected websites. Can return content, cookies, screenshot, and WebSocket endpoint. Example: { url: 'https://protected.com', content: true, screenshot: true }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -490,10 +520,10 @@ registerToolLoose(
 
 // BQL (Browser Query Language) tool
 registerToolLoose(
-  "browserless_bql",
+  "browserless_executeBrowserQL",
   {
     description:
-      "Executes complex browser automation using BrowserQL (GraphQL-based language). Supports: navigation (goto), interaction (click/type), form filling, CAPTCHA solving, data extraction (text/html), screenshots, session persistence, stealth/bot-detection evasion, waiting/sync (waitForNavigation/Request/Response/Selector/Timeout), and hybrid automation with reconnect. See: https://docs.browserless.io/browserql/start and https://docs.browserless.io/bql-schema/schema. Sessions are recorded by default (replay=true) for debugging.",
+      "Execute complex browser automation using BrowserQL (GraphQL-based language). Supports navigation, interaction, extraction, CAPTCHA solving, and more. Example: { query: 'mutation { click(selector: \"#btn\") }' }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -554,10 +584,10 @@ registerToolLoose(
 
 // Execute custom Puppeteer code server-side
 registerToolLoose(
-  "browserless_function",
+  "browserless_executePuppeteerCode",
   {
     description:
-      "Executes custom Puppeteer code server-side. Useful for complex automation that doesn't fit standard REST APIs. Code runs in a browser context with access to Puppeteer API.",
+      "Execute custom Puppeteer JavaScript code server-side. Useful for advanced automation. Example: { code: 'await page.goto(\'https://example.com\')' }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -610,10 +640,10 @@ registerToolLoose(
 
 // Download files that Chrome downloads during execution
 registerToolLoose(
-  "browserless_download",
+  "browserless_downloadFile",
   {
     description:
-      "Downloads files that Chrome downloads during Puppeteer code execution. Returns file as base64-encoded data.",
+      "Download files that Chrome downloads during Puppeteer code execution. Returns file as base64. Example: { code: 'await page.click(\'#download\')' }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -666,10 +696,10 @@ registerToolLoose(
 
 // Export/fetch URL and stream its content
 registerToolLoose(
-  "browserless_export",
+  "browserless_exportContent",
   {
     description:
-      "Fetches a URL and streams its native content type (HTML, PDF, images, etc.). Optionally bundles all resources as a ZIP file.",
+      "Fetch a URL and stream its native content type (HTML, PDF, images, etc.). Optionally bundle all resources as ZIP. Example: { url: 'https://example.com', includeResources: true }.",
     inputSchema: {
       apiKey: z
         .string()
@@ -725,10 +755,10 @@ registerToolLoose(
 
 // Lighthouse performance audit
 registerToolLoose(
-  "browserless_performance",
+  "browserless_runLighthouseAudit",
   {
     description:
-      "Runs Lighthouse performance audits on a URL. Returns SEO, accessibility, best practices, and performance scores along with detailed metrics.",
+      "Run Lighthouse performance audit on a URL. Returns SEO, accessibility, best practices, and performance scores. Example: { url: 'https://example.com' }.",
     inputSchema: {
       apiKey: z
         .string()
