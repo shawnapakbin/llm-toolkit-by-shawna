@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OperationTimer, generateTraceId } from "@shared/types";
-import { normalizeToolCall } from "@shared/types/dist/toolCallNormalizer";
+import { normalizeToolCall } from "../../shared/dist/toolCallNormalizer";
 import dotenv from "dotenv";
 import { z } from "zod";
 import { handleAskUserRequest } from "./ask-user";
