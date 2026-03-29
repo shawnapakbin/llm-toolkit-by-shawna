@@ -1,66 +1,4 @@
 /**
- * Browserless Policy Module
- *
- * Validates API configuration, URLs, and enforces security constraints.
- */
-
-/**
- * Valid Browserless API regions.
- */
-export const VALID_REGIONS = ["production-sfo", "production-lon", "production-ams"] as const;
-
-export type BrowserlessRegion = (typeof VALID_REGIONS)[number];
-
-/**
- * Default timeout for Browserless operations in milliseconds.
- */
-export const DEFAULT_TIMEOUT_MS = 30000;
-
-/**
- * Maximum allowed timeout to prevent long-running operations.
- */
-export const MAX_TIMEOUT_MS = 120000; // 2 minutes
-
-/**
- * Minimum timeout to ensure operations have reasonable time to complete.
- */
-export const MIN_TIMEOUT_MS = 1000;
-
-/**
- * Default concurrency limit for parallel operations.
- */
-export const DEFAULT_CONCURRENCY_LIMIT = 5;
-
-/**
- * Maximum concurrency limit.
- */
-export const MAX_CONCURRENCY_LIMIT = 20;
-
-/**
- * Validates whether a region string is a valid Browserless region.
- *
- * @param region - The region to validate
- * @returns true if the region is valid
- */
-export function isValidRegion(region: string): region is BrowserlessRegion {
-  return VALID_REGIONS.includes(region as BrowserlessRegion);
-}
-
-/**
- * Validates and normalizes timeout value.
- *
- * @param timeoutMs - The timeout value in milliseconds
- * @returns A valid timeout within acceptable range
- */
-export function validateTimeout(timeoutMs: number | undefined): number {
-  if (timeoutMs === undefined || !Number.isFinite(timeoutMs)) {
-    return DEFAULT_TIMEOUT_MS;
-  }
-
-  return Math.min(Math.max(timeoutMs, MIN_TIMEOUT_MS), MAX_TIMEOUT_MS);
-}
-
-/**
  * Validates API key format and presence.
  *
  * @param apiKey - The API key to validate
@@ -182,4 +120,48 @@ export function validateConcurrencyLimit(limit: number | undefined): number {
   }
 
   return Math.min(Math.max(Math.floor(limit), 1), MAX_CONCURRENCY_LIMIT);
+}
+
+export const DEFAULT_CONCURRENCY_LIMIT = 5;
+export const MAX_CONCURRENCY_LIMIT = 20;
+
+/**
+ * Default timeout in milliseconds.
+ */
+export const DEFAULT_TIMEOUT_MS = 30000;
+
+/**
+ * Maximum timeout in milliseconds.
+ */
+export const MAX_TIMEOUT_MS = 120000;
+
+/**
+ * Minimum timeout in milliseconds.
+ */
+export const MIN_TIMEOUT_MS = 5000;
+
+/**
+ * Validates a region string.
+ *
+ * @param region - The region to validate
+ * @returns true if the region is valid
+ */
+export function isValidRegion(region: string | undefined): boolean {
+  if (!region || typeof region !== "string") {
+    return false;
+  }
+  return ["production-sfo", "production-lon", "production-ams"].includes(region);
+}
+
+/**
+ * Validates a timeout value.
+ *
+ * @param timeout - The timeout to validate
+ * @returns A valid timeout within acceptable range
+ */
+export function validateTimeout(timeout: number | undefined): number {
+  if (timeout === undefined || !Number.isFinite(timeout)) {
+    return DEFAULT_TIMEOUT_MS;
+  }
+  return Math.min(Math.max(Math.floor(timeout), MIN_TIMEOUT_MS), MAX_TIMEOUT_MS);
 }
