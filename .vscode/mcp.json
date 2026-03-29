@@ -2,6 +2,7 @@
   "servers": {
     "browserless-docs": {
       "type": "http",
+      "BROWSERLESS_API_KEY": "${BROWSERLESS_API_KEY}",
       "url": "https://browserless-docs.mcp.kapa.ai"
     }
   },
