@@ -10,6 +10,7 @@ import { getAuthUrl, getRegionUrl } from "./utils";
 
 const DEFAULT_REGION = process.env.BROWSERLESS_DEFAULT_REGION || "production-sfo";
 const DEFAULT_TIMEOUT_MS = Number(process.env.BROWSERLESS_DEFAULT_TIMEOUT_MS ?? 30000);
+const ENV_API_KEY = process.env.BROWSERLESS_API_KEY || process.env.BROWSERLESS_API_TOKEN || "";
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -43,7 +44,7 @@ const smartscraperInputSchema: Record<string, z.ZodTypeAny> = {
     .optional()
     .default(30000)
     .describe("Request timeout in milliseconds"),
-  apiKey: z.string().min(1).describe("Browserless API key (required for authentication)"),
+  apiKey: z.string().optional().describe("Browserless API key. If omitted, falls back to BROWSERLESS_API_KEY environment variable"),
 };
 
 async function handleSmartscraper(input: unknown): Promise<CallToolResult> {
@@ -56,11 +57,11 @@ async function handleSmartscraper(input: unknown): Promise<CallToolResult> {
     url: string;
     formats?: string[];
     timeout?: number;
-    apiKey: string;
+    apiKey?: string;
   };
 
   // URL goes in the JSON body per Browserless REST API spec
-  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/smartscraper${getAuthUrl(apiKey)}`;
+  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/smartscraper${getAuthUrl(apiKey || ENV_API_KEY)}`;
 
   try {
     const response = await fetch(endpoint, {
@@ -127,7 +128,7 @@ const functionInputSchema: Record<string, z.ZodTypeAny> = {
     .optional()
     .default(30000)
     .describe("Request timeout in milliseconds"),
-  apiKey: z.string().min(1).describe("Browserless API key (required for authentication)"),
+  apiKey: z.string().optional().describe("Browserless API key. If omitted, falls back to BROWSERLESS_API_KEY environment variable"),
 };
 
 async function handleFunction(input: unknown): Promise<CallToolResult> {
@@ -140,10 +141,10 @@ async function handleFunction(input: unknown): Promise<CallToolResult> {
     code: string;
     context?: Record<string, unknown>;
     timeout?: number;
-    apiKey: string;
+    apiKey?: string;
   };
 
-  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/function${getAuthUrl(apiKey)}`;
+  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/function${getAuthUrl(apiKey || ENV_API_KEY)}`;
 
   try {
     const response = await fetch(endpoint, {
@@ -208,7 +209,7 @@ const downloadInputSchema: Record<string, z.ZodTypeAny> = {
     .optional()
     .default(30000)
     .describe("Request timeout in milliseconds"),
-  apiKey: z.string().min(1).describe("Browserless API key (required for authentication)"),
+  apiKey: z.string().optional().describe("Browserless API key. If omitted, falls back to BROWSERLESS_API_KEY environment variable"),
 };
 
 async function handleDownload(input: unknown): Promise<CallToolResult> {
@@ -221,10 +222,10 @@ async function handleDownload(input: unknown): Promise<CallToolResult> {
     code: string;
     context?: Record<string, unknown>;
     timeout?: number;
-    apiKey: string;
+    apiKey?: string;
   };
 
-  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/download${getAuthUrl(apiKey)}`;
+  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/download${getAuthUrl(apiKey || ENV_API_KEY)}`;
 
   try {
     const response = await fetch(endpoint, {
@@ -300,7 +301,7 @@ const exportInputSchema: Record<string, z.ZodTypeAny> = {
     .optional()
     .default(30000)
     .describe("Request timeout in milliseconds"),
-  apiKey: z.string().min(1).describe("Browserless API key (required for authentication)"),
+  apiKey: z.string().optional().describe("Browserless API key. If omitted, falls back to BROWSERLESS_API_KEY environment variable"),
 };
 
 async function handleExport(input: unknown): Promise<CallToolResult> {
@@ -319,10 +320,10 @@ async function handleExport(input: unknown): Promise<CallToolResult> {
     includeResources?: boolean;
     waitForTimeout?: number;
     timeout?: number;
-    apiKey: string;
+    apiKey?: string;
   };
 
-  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/export${getAuthUrl(apiKey)}`;
+  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/export${getAuthUrl(apiKey || ENV_API_KEY)}`;
 
   try {
     const body: Record<string, unknown> = { url };
@@ -415,7 +416,7 @@ const searchInputSchema: Record<string, z.ZodTypeAny> = {
     .optional()
     .default(30000)
     .describe("Request timeout in milliseconds"),
-  apiKey: z.string().min(1).describe("Browserless API key (required for authentication)"),
+  apiKey: z.string().optional().describe("Browserless API key. If omitted, falls back to BROWSERLESS_API_KEY environment variable"),
 };
 
 async function handleSearch(input: unknown): Promise<CallToolResult> {
@@ -442,10 +443,10 @@ async function handleSearch(input: unknown): Promise<CallToolResult> {
     categories?: string[];
     scrapeOptions?: Record<string, unknown>;
     timeout?: number;
-    apiKey: string;
+    apiKey?: string;
   };
 
-  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/search${getAuthUrl(apiKey)}`;
+  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/search${getAuthUrl(apiKey || ENV_API_KEY)}`;
 
   try {
     const body: Record<string, unknown> = { query, limit, lang, sources };
@@ -529,7 +530,7 @@ const mapInputSchema: Record<string, z.ZodTypeAny> = {
     .optional()
     .default(30000)
     .describe("Request timeout in milliseconds"),
-  apiKey: z.string().min(1).describe("Browserless API key (required for authentication)"),
+  apiKey: z.string().optional().describe("Browserless API key. If omitted, falls back to BROWSERLESS_API_KEY environment variable"),
 };
 
 async function handleMap(input: unknown): Promise<CallToolResult> {
@@ -550,10 +551,10 @@ async function handleMap(input: unknown): Promise<CallToolResult> {
     includeSubdomains?: boolean;
     ignoreQueryParameters?: boolean;
     timeout?: number;
-    apiKey: string;
+    apiKey?: string;
   };
 
-  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/map${getAuthUrl(apiKey)}`;
+  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/map${getAuthUrl(apiKey || ENV_API_KEY)}`;
 
   try {
     const body: Record<string, unknown> = {
@@ -625,7 +626,7 @@ const bqlInputSchema: Record<string, z.ZodTypeAny> = {
     .optional()
     .default(30000)
     .describe("Request timeout in milliseconds"),
-  apiKey: z.string().min(1).describe("Browserless API key (required for authentication)"),
+  apiKey: z.string().optional().describe("Browserless API key. If omitted, falls back to BROWSERLESS_API_KEY environment variable"),
 };
 
 async function handleBQL(input: unknown): Promise<CallToolResult> {
@@ -636,10 +637,10 @@ async function handleBQL(input: unknown): Promise<CallToolResult> {
   } = input as {
     query: string;
     timeout?: number;
-    apiKey: string;
+    apiKey?: string;
   };
 
-  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/graphql${getAuthUrl(apiKey)}`;
+  const endpoint = `${getRegionUrl(DEFAULT_REGION)}/graphql${getAuthUrl(apiKey || ENV_API_KEY)}`;
 
   try {
     const response = await fetch(endpoint, {
@@ -775,3 +776,6 @@ main().catch((error) => {
   console.error("MCP server startup failed:", error);
   process.exit(1);
 });
+
+
+

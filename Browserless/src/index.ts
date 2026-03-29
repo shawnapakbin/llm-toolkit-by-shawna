@@ -1,7 +1,15 @@
 import express, { Request, Response } from "express";
 import { z } from "zod";
 import { MAX_CODE_LENGTH, hasUnsafeCodePatterns, isValidApiKey, validateTargetUrl } from "./policy";
-import { smartscraperSchema } from "./schemas";
+
+const smartscraperSchema = z.object({
+  url: z.string().url(),
+  formats: z
+    .array(z.enum(["markdown", "html", "screenshot", "pdf", "links"]))
+    .optional()
+    .default(["markdown"]),
+  timeout: z.number().int().positive().optional().default(30000),
+});
 
 type SmartscraperParams = z.infer<typeof smartscraperSchema> & { apiKey?: string; region?: string };
 
