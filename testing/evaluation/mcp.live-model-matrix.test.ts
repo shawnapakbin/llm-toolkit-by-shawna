@@ -1,6 +1,6 @@
+import { LMStudioClient } from "@lmstudio/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { LMStudioClient } from "@lmstudio/sdk";
 
 type ToolResult = {
   success: boolean;
@@ -23,7 +23,10 @@ function parseToolResult(response: unknown): ToolResult {
       return normalize(result.structuredContent);
     }
     if (result?.data && typeof result.data === "object") {
-      return { ...(result as Record<string, unknown>), ...(result.data as Record<string, unknown>) } as ToolResult;
+      return {
+        ...(result as Record<string, unknown>),
+        ...(result.data as Record<string, unknown>),
+      } as ToolResult;
     }
     return value as ToolResult;
   };
