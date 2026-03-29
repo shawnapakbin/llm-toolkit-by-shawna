@@ -60,3 +60,17 @@ yarn.lock
 # Private notes (local only)
 private.md
 **/private.md
+
+# Local reference/scratch files
+LM-Studio-MCP.md
+Browserless/browserless-Documents.md
+Browserless/browserless-ai-integrations.md
+
+# TypeScript build info
+**/tsconfig.tsbuildinfo
+
+# Compiled shared outputs (generated)
+shared/toolCallNormalizer.d.ts
+shared/toolCallNormalizer.d.ts.map
+shared/toolCallNormalizer.js
+shared/toolCallNormalizer.js.map

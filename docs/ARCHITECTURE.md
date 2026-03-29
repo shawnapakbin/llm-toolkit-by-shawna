@@ -97,7 +97,7 @@ SQLite tables capture agent intelligence:
 | **Calculator** | Math expressions (engineering notation) | 3335 | ✅ Working |
 | **AskUser** | Interactive interview and clarification workflows | 3338 | ✅ Working |
 | **Clock** | Current date/time + timezone | 3337 | ✅ Working |
-| **Browserless** | Advanced browser automation (BrowserQL, screenshots, PDFs) | 3003 | ✅ Working |
+| **Browserless** | Advanced browser automation (screenshots, PDFs, scraping, content extraction, BrowserQL, Puppeteer code, downloads, export, Lighthouse audits) | 3003 | ✅ Working |
 | **Git** (Phase 2) | Clone, commit, branch, merge | TBD | 🔄 Planned |
 | **FileEditor** (Phase 2) | Safe read/write code files | TBD | 🔄 Planned |
 | **PackageManager** (Phase 2) | npm/pip/cargo detection + install/update | TBD | 🔄 Planned |
@@ -169,7 +169,7 @@ const BLOCKED = [
 **Mitigation**: Timeouts + concurrency limits
 - Terminal: 120 second max timeout
 - WebBrowser: 60 second max timeout
-- Browserless: 5 concurrent requests (queue beyond)
+- Browserless: 5 concurrent requests (configurable, queue beyond), strict timeout enforcement on all handlers
 
 ---
 

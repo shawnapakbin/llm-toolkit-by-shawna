@@ -3,10 +3,10 @@
  */
 
 import { ErrorCode, OperationTimer, generateTraceId } from "@shared/types";
-import { normalizeToolCall } from "../../shared/toolCallNormalizer";
 import { type Logger, getLogger } from "../../Observability/src/logger";
 import { type MetricsRegistry, getRegistry } from "../../Observability/src/metrics";
 import { SpanStatus, type Tracer, getTracer } from "../../Observability/src/tracer";
+import { normalizeToolCall } from "../../shared/toolCallNormalizer";
 import { type ToolRegistry, ToolStatus } from "./registry";
 
 /**
@@ -564,7 +564,7 @@ export class AgentRunner {
       // and not already canonical (skip if already structured for the tool)
       // We assume normalization is idempotent for canonical input
       normalizedInput = normalizeToolCall(step.input, { taskRunId: step.id });
-    } catch (err) {
+    } catch (_err) {
       // If normalization fails, fallback to original input (legacy tools may not need normalization)
       normalizedInput = step.input;
     }

@@ -354,7 +354,8 @@ export function registerDefaultTools(registry: ToolRegistry = defaultRegistry): 
   });
 
   // Browserless Tool (MCP Cloud)
-  const browserlessToken = process.env.BROWSERLESS_API_TOKEN || process.env.BROWSERLESS_API_KEY || "";
+  const browserlessToken =
+    process.env.BROWSERLESS_API_TOKEN || process.env.BROWSERLESS_API_KEY || "";
   const browserlessBaseUrl = "https://mcp.browserless.io/mcp";
   const browserlessEndpoint = browserlessToken
     ? `${browserlessBaseUrl}?token=${browserlessToken}`

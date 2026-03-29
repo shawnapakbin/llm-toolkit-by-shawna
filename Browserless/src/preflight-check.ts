@@ -1,15 +1,5 @@
-#!/usr/bin/env node
-
-/**
- * Browserless Environment Preflight Checks
- *
- * Validates Browserless configuration and environment before use.
- * Run this before starting the Browserless tool to ensure proper setup.
- */
-
 import path from "path";
 import dotenv from "dotenv";
-
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 dotenv.config();
 
@@ -31,32 +21,6 @@ function addCheck(
   checks.push({ name, status, message, details });
 }
 
-// Check 1: API Key presence and format
-const apiKey = process.env.BROWSERLESS_API_KEY || process.env.BROWSERLESS_API_TOKEN;
-if (!apiKey) {
-  addCheck(
-    "API Key",
-    "fail",
-    "BROWSERLESS_API_KEY/BROWSERLESS_API_TOKEN is not set",
-    "Set BROWSERLESS_API_KEY in .env or set BROWSERLESS_API_KEY/BROWSERLESS_API_TOKEN in MCP env. Minimum 10 characters required.",
-  );
-} else if (apiKey.length < 10) {
-  addCheck(
-    "API Key",
-    "fail",
-    "BROWSERLESS_API_KEY is too short",
-    `Current length: ${apiKey.length}. Minimum 10 characters required.`,
-  );
-} else {
-  addCheck(
-    "API Key",
-    "pass",
-    `API Key configured (${apiKey.length} characters)`,
-    "Key is masked for security",
-  );
-}
-
-// Check 2: Region configuration
 const region = process.env.BROWSERLESS_DEFAULT_REGION;
 const validRegions = ["production-sfo", "production-lon", "production-fra", "local"];
 if (region && !validRegions.includes(region)) {

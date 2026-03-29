@@ -1,18 +1,19 @@
-/**
- * Shared Types for LLM Toolkit
- *
- * Unified response envelope and error codes used across all tools.
- */
+"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OperationTimer = exports.ErrorCode = void 0;
 exports.generateTraceId = generateTraceId;
 exports.createSuccessResponse = createSuccessResponse;
 exports.createErrorResponse = createErrorResponse;
 /**
+ * Shared Types for LLM Toolkit
+ *
+ * Unified response envelope and error codes used across all tools.
+ */
+/**
  * Standard error codes used across all tools.
  */
 var ErrorCode;
-((ErrorCode) => {
+(function (ErrorCode) {
   /** Invalid input parameters */
   ErrorCode["INVALID_INPUT"] = "INVALID_INPUT";
   /** Operation timed out */
@@ -32,7 +33,6 @@ var ErrorCode;
  * Timing utility for tracking operation duration.
  */
 class OperationTimer {
-  startTime;
   constructor() {
     this.startTime = Date.now();
   }
@@ -76,3 +76,4 @@ function createErrorResponse(errorCode, errorMessage, timingMs, traceId) {
     traceId,
   };
 }
+//# sourceMappingURL=types.js.map

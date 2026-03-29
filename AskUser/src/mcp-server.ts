@@ -2,9 +2,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { OperationTimer, generateTraceId } from "@shared/types";
-import { normalizeToolCall } from "../../shared/dist/toolCallNormalizer";
 import dotenv from "dotenv";
 import { z } from "zod";
+import { normalizeToolCall } from "../../shared/dist/toolCallNormalizer";
 import { handleAskUserRequest } from "./ask-user";
 import type { AskUserRequest } from "./types";
 
@@ -82,7 +82,7 @@ export function createAskUserMcpServer(): McpServer {
       const timer = new OperationTimer();
       const traceId = generateTraceId();
       // Normalize tool call input (handles legacy and canonical formats)
-      let normalized: any = input;
+      let normalized: unknown = input;
       try {
         // If input is a tool call, extract action/payload for AskUserRequest
         const toolCall = normalizeToolCall(input, { taskRunId: traceId });

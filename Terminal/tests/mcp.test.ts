@@ -19,7 +19,10 @@ function parseToolResult(response: unknown): ToolResult {
       return normalize(result.structuredContent);
     }
     if (result?.data && typeof result.data === "object") {
-      return { ...(result as Record<string, unknown>), ...(result.data as Record<string, unknown>) } as ToolResult;
+      return {
+        ...(result as Record<string, unknown>),
+        ...(result.data as Record<string, unknown>),
+      } as ToolResult;
     }
     return value as ToolResult;
   };
