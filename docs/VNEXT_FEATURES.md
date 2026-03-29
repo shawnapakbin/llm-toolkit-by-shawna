@@ -32,6 +32,12 @@ Owner: `core-maintainers`
 - Scope: expected-success semantics for negative tests and baseline/drift support.
 - Key paths: `testing/evaluation/`.
 
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [Browserless/README.md](../Browserless/README.md) | Browserless MCP tool usage, schemas, and troubleshooting |
+
 ## Marking Rules (Going Forward)
 
 1. Any release-scoped feature must be listed in this file before merge.

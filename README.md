@@ -47,7 +47,7 @@ All tool calls are normalized to a canonical format before dispatch, regardless 
 - **[Calculator](Calculator/README.md)** — Math expressions (engineering notation, symbol normalization) ✅
 - **[DocumentScraper](DocumentScraper/README.md)** — Read documents with structured extraction + encrypted PDF detection ✅
 - **[Clock](Clock/README.md)** — Date/time + timezones (IANA + locale formatting) ✅
-- **[Browserless](Browserless/README.md)** — Advanced browser automation (screenshots, PDFs, BrowserQL) ✅
+- **[Browserless](Browserless/README.md)** — Advanced browser automation (screenshots, PDFs, scraping, content extraction, BrowserQL, Puppeteer code, downloads, export, Lighthouse audits) ✅
 - **[AskUser](AskUser/README.md)** — Interactive interview workflow for planning and clarification ✅
 - **[RAG](RAG/README.md)** — Persistent retrieval augmented generation with source lifecycle + approval-gated writes ✅
 
@@ -239,34 +239,34 @@ npm run mcp:sync-lmstudio
 **Note**: For production use, prefer `npm run mcp:print-config` or `npm run mcp:sync-lmstudio` so paths are generated automatically for your machine.  
 Phase 2 will introduce unified orchestrator MCP server and multi-interface launchers.
 
-## Browserless MCP Cloud Usage
+
+## Browserless MCP Tool Usage
 
 ### Quick Setup for LLM/Agent Workflows
 
-- **Get a Browserless API token** from https://browserless.io/account/
-- **Set your token** in your environment (recommended: `.env` or system env):
-  - `BROWSERLESS_API_TOKEN=your-token-here`
-- **No hardcoding:** Never commit your token to version control.
+1. **Get a Browserless API token** from https://browserless.io/account/
+2. **Set your token** in your environment (recommended: `.env` or system env):
+	 - `BROWSERLESS_API_KEY=your-token-here`
+3. **Never commit your token to version control.**
 
-### Tool Registration (Cloud)
-- The Browserless tool is automatically registered to the official MCP endpoint:
-  - Endpoint: `https://mcp.browserless.io/mcp?token=YOUR_TOKEN`
-  - The token is loaded from `BROWSERLESS_API_TOKEN` or `BROWSERLESS_API_KEY`.
-- For local development, the tool can run on `http://localhost:3003` (see Browserless/README.md for details).
+### Tool Registration
+- **Cloud:** The Browserless tool is registered to the official MCP endpoint:
+	- Endpoint: `https://mcp.browserless.io/mcp?token=YOUR_TOKEN`
+	- Token is loaded from `BROWSERLESS_API_KEY` or `BROWSERLESS_API_TOKEN`.
+- **Local:** For development, run the tool at `http://localhost:3003` (see [Browserless/README.md](Browserless/README.md)).
 
 ### LLM/Agent Integration
-- LLMs and agents should use the MCP endpoint for all browser automation tasks.
-- Supported operations: screenshots, PDFs, scraping, content extraction, BrowserQL, and more.
-- For advanced usage, see [Browserless/README.md](Browserless/README.md).
+- Use the MCP endpoint for all browser automation tasks: screenshots, PDFs, scraping, content extraction, BrowserQL, Puppeteer code, downloads, export, Lighthouse audits, and more.
+- See [Browserless/README.md](Browserless/README.md) for full tool list, schemas, and examples.
 
 ### Example `.env` file
 ```
-BROWSERLESS_API_TOKEN=your-browserless-api-token-here
+BROWSERLESS_API_KEY=your-browserless-api-token-here
 ```
 
 ### Troubleshooting
-- If you see authentication errors, verify your token and that it is set in the environment.
-- For protocol errors, ensure you are using the correct endpoint (MCP for cloud, HTTP for local).
+- **401/Invalid API key:** Check your token and environment variable.
+- **Protocol errors:** Ensure you are using the correct endpoint (MCP for cloud, HTTP for local).
 - See [Browserless official docs](https://docs.browserless.io/) for more.
 
 ## Testing & CI/CD
@@ -337,6 +337,7 @@ The SQLite-backed memory store enables:
 
 See [Memory/README.md](Memory/README.md) for details.
 
+
 ## Documentation
 
 | Document | Purpose |
@@ -349,6 +350,7 @@ See [Memory/README.md](Memory/README.md) for details.
 | [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | Release hardening and sign-off steps |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | PR workflow + code review checklist |
 | [Memory/README.md](Memory/README.md) | Memory persistence API |
+| [Browserless/README.md](Browserless/README.md) | Browserless MCP tool usage, schemas, and troubleshooting |
 
 
 ## Features & Status
