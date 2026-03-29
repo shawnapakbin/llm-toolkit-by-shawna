@@ -85,7 +85,12 @@ export function createRAGMcpServer(): McpServer {
                 .describe("Number of results (default 5)"),
               sourceIds: z.array(z.string()).optional().describe("Filter by source IDs"),
               sourceKeys: z.array(z.string()).optional().describe("Filter by source keys"),
-              minScore: z.number().min(0).max(1).optional().describe("Minimum relevance score (0–1)"),
+              minScore: z
+                .number()
+                .min(0)
+                .max(1)
+                .optional()
+                .describe("Minimum relevance score (0–1)"),
             })
             .strict(),
         }),
@@ -93,7 +98,13 @@ export function createRAGMcpServer(): McpServer {
           action: z.literal("list_sources"),
           payload: z
             .object({
-              limit: z.number().int().min(1).max(100).optional().describe("Max results (default 20)"),
+              limit: z
+                .number()
+                .int()
+                .min(1)
+                .max(100)
+                .optional()
+                .describe("Max results (default 20)"),
               offset: z.number().int().min(0).optional().describe("Pagination offset (default 0)"),
             })
             .strict(),

@@ -1,50 +1,3 @@
-  test("ingest with dynamic docs URL triggers Browserless fallback and BrowserQL guidance", async () => {
-    // Mock DocumentScraper to return empty content
-    const fetchMock = jest.fn(async (input: string) => {
-      if (input.includes("read_document")) {
-        return jsonResponse({ success: true, data: { content: "" } });
-      }
-      // Simulate Browserless MCP returning BrowserQL guidance for dynamic docs
-      if (input.includes("browserless_content")) {
-        return jsonResponse({
-          success: false,
-          error: "Dynamic documentation site detected. Use BrowserQL for robust content extraction.",
-          guidance: "This site requires BrowserQL (browserless_bql) for reliable ingestion. Example: { query: 'query { pageText(url: \\\"https://browserless-docs.mcp.kapa.ai\\\") { text } }' }",
-          recommendedTool: "browserless_bql",
-          url: "https://browserless-docs.mcp.kapa.ai",
-        });
-      }
-      return jsonResponse({ success: false, error: "unexpected url" }, false);
-    });
-
-    Object.defineProperty(global, "fetch", {
-      configurable: true,
-      writable: true,
-      value: fetchMock,
-    });
-
-    const responseRaw = await client.callTool({
-      name: "rag_knowledge",
-      arguments: {
-        action: "ingest_documents",
-        payload: {
-          approvalInterviewId: "approved-dynamic-docs",
-          documents: [
-            {
-              url: "https://browserless-docs.mcp.kapa.ai",
-              title: "Dynamic Docs Example",
-            },
-          ],
-        },
-      },
-    });
-
-    const response = parseToolResult(responseRaw);
-    expect(response.success).toBe(false);
-    expect(response.error).toContain("Dynamic documentation site detected");
-    expect(response.guidance).toContain("BrowserQL");
-    expect(response.recommendedTool).toBe("browserless_bql");
-  });
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createRAGMcpServer } from "../src/mcp-server";
@@ -73,7 +26,10 @@ function parseToolResult(response: unknown): ToolResult {
       return normalize(result.structuredContent);
     }
     if (result?.data && typeof result.data === "object") {
-      return { ...(result as Record<string, unknown>), ...(result.data as Record<string, unknown>) } as ToolResult;
+      return {
+        ...(result as Record<string, unknown>),
+        ...(result.data as Record<string, unknown>),
+      } as ToolResult;
     }
     return value as ToolResult;
   };

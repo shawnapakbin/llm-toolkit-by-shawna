@@ -2,6 +2,7 @@
  * Canonical ToolCall format for tool invocation normalization.
  */
 export interface ToolCall {
+  [key: string]: unknown;
   id: string;
   task_run_id: string;
   tool_name: string;

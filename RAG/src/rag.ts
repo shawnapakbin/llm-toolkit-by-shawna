@@ -200,10 +200,7 @@ class RAGService {
     approvalToken?: string,
   ): Promise<{ ok: true } | { ok: false; response: ToolResponse }> {
     // Env-var bypass: skip approval, log for auditability
-    if (
-      process.env.RAG_BYPASS_APPROVAL === "true" ||
-      process.env.RAG_BYPASS_APPROVAL === "1"
-    ) {
+    if (process.env.RAG_BYPASS_APPROVAL === "true" || process.env.RAG_BYPASS_APPROVAL === "1") {
       console.error(
         `[RAG] Approval bypassed for '${action}' (RAG_BYPASS_APPROVAL=true) at ${new Date().toISOString()}`,
       );
@@ -324,20 +321,15 @@ class RAGService {
         content = pickDocumentText(payload);
         title = payload?.title || payload?.data?.title || document.title;
       }
-    } catch (err) {
-      docScraperError =
-        `DocumentScraper service is unreachable at ${DOC_SCRAPER_ENDPOINT}. Ensure the DocumentScraper HTTP server is running, or provide document content directly via the 'text' field instead.`;
+    } catch (_err) {
+      docScraperError = `DocumentScraper service is unreachable at ${DOC_SCRAPER_ENDPOINT}. Ensure the DocumentScraper HTTP server is running, or provide document content directly via the 'text' field instead.`;
     }
 
     // If DocumentScraper failed or returned empty, try Browserless as fallback for dynamic/JS docs
     if ((!content || !content.trim()) && document.url) {
       try {
         // Only fallback for known dynamic/docs domains (can expand this list)
-        const dynamicDomains = [
-          "browserless-docs.mcp.kapa.ai",
-          "docs.browserless.io",
-          "kapa.ai",
-        ];
+        const dynamicDomains = ["browserless-docs.mcp.kapa.ai", "docs.browserless.io", "kapa.ai"];
         const urlHost = (() => {
           try {
             return new URL(document.url!).host;
@@ -347,7 +339,9 @@ class RAGService {
         })();
         if (dynamicDomains.some((d) => urlHost.endsWith(d))) {
           // Use Browserless content extraction
-          const browserlessEndpoint = process.env.BROWSERLESS_MCP_ENDPOINT || "http://localhost:3340/tools/browserless_content";
+          const browserlessEndpoint =
+            process.env.BROWSERLESS_MCP_ENDPOINT ||
+            "http://localhost:3340/tools/browserless_content";
           const browserlessPayload = {
             url: document.url,
             waitForTimeout: 2000,
@@ -357,8 +351,17 @@ class RAGService {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(browserlessPayload),
           });
-          const browserlessResult = await browserlessResp.json();
-          if (browserlessResult.success && browserlessResult.text && browserlessResult.text.trim()) {
+          type BrowserlessResult = {
+            success?: boolean;
+            text?: string;
+            error?: string;
+          };
+          const browserlessResult = (await browserlessResp.json()) as BrowserlessResult;
+          if (
+            browserlessResult.success &&
+            browserlessResult.text &&
+            browserlessResult.text.trim()
+          ) {
             return { content: browserlessResult.text, title: document.title };
           } else {
             throw new Error(
@@ -368,7 +371,8 @@ class RAGService {
         }
       } catch (err) {
         // If Browserless fallback fails, propagate error below
-        docScraperError = (docScraperError ? docScraperError + "\n" : "") + `Browserless fallback error: ${err}`;
+        docScraperError =
+          (docScraperError ? docScraperError + "\n" : "") + `Browserless fallback error: ${err}`;
       }
     }
 

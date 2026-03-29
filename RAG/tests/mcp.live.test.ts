@@ -1,6 +1,6 @@
+import { LMStudioClient } from "@lmstudio/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { LMStudioClient } from "@lmstudio/sdk";
 
 type ToolResult = {
   success: boolean;
@@ -22,7 +22,10 @@ function parseToolResult(response: unknown): ToolResult {
       return normalize(result.structuredContent);
     }
     if (result?.data && typeof result.data === "object") {
-      return { ...(result as Record<string, unknown>), ...(result.data as Record<string, unknown>) } as ToolResult;
+      return {
+        ...(result as Record<string, unknown>),
+        ...(result.data as Record<string, unknown>),
+      } as ToolResult;
     }
     return value as ToolResult;
   };
@@ -82,7 +85,8 @@ describeIfLive("RAG MCP live integration", () => {
     process.env.RAG_EMBEDDING_MODEL = embeddingModelKey;
 
     const fetchMock = jest.fn(async (input: string | URL | Request, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
       if (url.includes("ask_user_interview")) {
         return jsonResponse({
