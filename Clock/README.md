@@ -207,7 +207,7 @@ Add this configuration to your LM Studio `mcp.json`:
   "mcpServers": {
     "clock": {
       "command": "node",
-      "args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Clock/dist/mcp-server.js"],
+      "args": ["Clock/dist/mcp-server.js"],
       "env": {
         "CLOCK_DEFAULT_TIMEZONE": "",
         "CLOCK_DEFAULT_LOCALE": "en-US"
@@ -216,6 +216,8 @@ Add this configuration to your LM Studio `mcp.json`:
   }
 }
 ```
+
+**Tip**: From repo root, run `npm run mcp:print-config` to print a ready-to-paste config with absolute paths for your current folder.
 
 **Environment Variables** (optional):
 - `CLOCK_DEFAULT_TIMEZONE`: Default IANA timezone (empty = system timezone)
@@ -317,4 +319,5 @@ npm test             # Run tests (if available)
 
 ## License
 
-MIT
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties). See ../LICENSE.
+Original Author: Shawna Pakbin

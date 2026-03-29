@@ -1,0 +1,19 @@
+{
+  "traceId": "1774498306361-k62br8ny",
+  "workflowId": "eval-math-2-negative",
+  "workflowName": "Math Engineering - Negative Test",
+  "status": "error",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "empty-expression",
+      "toolId": "calculator",
+      "success": false,
+      "retries": 0,
+      "durationMs": 0,
+      "errorCode": "INVALID_INPUT",
+      "errorMessage": "expression required"
+    }
+  ],
+  "generatedAt": "2026-03-26T04:11:46.361Z"
+}

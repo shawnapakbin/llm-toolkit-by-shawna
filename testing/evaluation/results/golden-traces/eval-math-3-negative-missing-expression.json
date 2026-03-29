@@ -1,0 +1,19 @@
+{
+  "traceId": "1774498306362-8mxuqigl",
+  "workflowId": "eval-math-3-negative",
+  "workflowName": "Math Engineering - Missing Expression",
+  "status": "error",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "missing-expression",
+      "toolId": "calculator",
+      "success": false,
+      "retries": 0,
+      "durationMs": 0,
+      "errorCode": "INVALID_INPUT",
+      "errorMessage": "expression required"
+    }
+  ],
+  "generatedAt": "2026-03-26T04:11:46.362Z"
+}

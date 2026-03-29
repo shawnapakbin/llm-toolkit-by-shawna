@@ -1,9 +1,10 @@
-# LM Studio Tools
+# LLM Toolkit by Shawna
 
-This workspace contains local tools for LM Studio.
+**Enhanced Feature: Unified Tool Call Normalization**
+
+All tool calls—whether originating from HTTP, MCP, or internal workflows—are automatically normalized to a canonical schema before execution. This ensures seamless compatibility across legacy and new tool call formats, reduces integration bugs, and enables robust multi-model orchestration. The normalization logic is shared and enforced in both the MCP server and workflow runner. See `shared/toolCallNormalizer.ts` for implementation details.
 
 See implementation roadmap: [AGENT_ROADMAP.md](AGENT_ROADMAP.md)
-# LLM Toolkit by Shawna
 
 **Version**: 2.0.0-alpha.1  
 **Status**: Phase 0 (Foundation) ✅ Complete
@@ -29,17 +30,26 @@ npm run build
 npm run check:ci     # Biome format + lint
 npm run type-check   # TypeScript strict mode
 npm test:ci          # Jest tests (80%+ coverage)
+npm run startup:check # Workspace readiness (MCP binaries + config sync)
 ```
+
 
 ## Architecture
 
-### 5 Core Tools (v1 → v2 compatibility maintained)
+### Tool Call Normalization Layer
+
+All tool calls are normalized to a canonical format before dispatch, regardless of their origin. This guarantees that every tool invocation—whether from HTTP, MCP, or workflow runner—follows the same schema, improving reliability and extensibility. See `shared/toolCallNormalizer.ts`.
+
+### 8 Core Tools (v1 → v2 compatibility maintained)
 
 - **[Terminal](Terminal/README.md)** — Execute shell commands (OS-aware: Windows/macOS/Linux) ✅
 - **[WebBrowser](WebBrowser/README.md)** — Fetch + parse web pages (SSRF-protected) ✅
 - **[Calculator](Calculator/README.md)** — Math expressions (engineering notation, symbol normalization) ✅
+- **[DocumentScraper](DocumentScraper/README.md)** — Read documents with structured extraction + encrypted PDF detection ✅
 - **[Clock](Clock/README.md)** — Date/time + timezones (IANA + locale formatting) ✅
 - **[Browserless](Browserless/README.md)** — Advanced browser automation (screenshots, PDFs, BrowserQL) ✅
+- **[AskUser](AskUser/README.md)** — Interactive interview workflow for planning and clarification ✅
+- **[RAG](RAG/README.md)** — Persistent retrieval augmented generation with source lifecycle + approval-gated writes ✅
 
 ### Foundation Layer (Phase 0 ✅)
 
@@ -57,16 +67,30 @@ npm test:ci          # Jest tests (80%+ coverage)
 
 See [AGENT_ROADMAP.md](AGENT_ROADMAP.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
+## Release Scope Tracking
+
+To avoid confusion between intentional version enhancements and accidental drift, all upcoming release features must be listed in [docs/VNEXT_FEATURES.md](docs/VNEXT_FEATURES.md).
+
+During hardening for the next release:
+- Treat listed features as intentional scope.
+- Treat unlisted feature additions as out-of-scope until the manifest is updated.
+- Run `npm run verify:all` before release sign-off.
+
 ## Code Quality
 
 ### Quality Gates (Every PR)
 
 ```bash
+npm run verify:vnext-scope # Enforce vNext manifest updates for new tool scope
 npm run check:ci       # Biome: format + lint ✓
 npm run type-check     # TypeScript strict mode ✓
 npm run test:ci        # Jest: 80%+ coverage ✓
 npm run build          # Compilation check ✓
+npm run startup:check:strict # Startup readiness + strict env gate ✓
+npm run verify:all     # Combined release hardening gate ✓
 ```
+
+`startup:check:strict` requires `BROWSERLESS_API_KEY` to be set.
 
 ### Standards
 
@@ -107,6 +131,26 @@ git push origin feat/description
 
 Update your LM Studio `mcp.json`:
 
+```bash
+npm run mcp:print-config
+```
+
+Use the generated JSON as-is (paths are resolved for your current local folder). Avoid editing paths manually.
+
+To auto-deploy BOM-free bridge configs into installed LM Studio MCP plugins:
+
+```bash
+npm run mcp:sync-lmstudio
+```
+
+Optional override for non-default plugin location:
+
+```bash
+# Windows PowerShell
+$env:LMSTUDIO_MCP_PLUGIN_ROOT=(Read-Host "Enter absolute path to your LM Studio MCP plugins folder")
+npm run mcp:sync-lmstudio
+```
+
 ## Complete `mcp.json` Example
 
 ```json
@@ -114,7 +158,7 @@ Update your LM Studio `mcp.json`:
 	"mcpServers": {
 		"terminal": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Terminal/dist/mcp-server.js"],
+			"args": ["Terminal/dist/mcp-server.js"],
 			"env": {
 				"TERMINAL_DEFAULT_TIMEOUT_MS": "60000",
 				"TERMINAL_MAX_TIMEOUT_MS": "120000"
@@ -122,7 +166,7 @@ Update your LM Studio `mcp.json`:
 		},
 		"web-browser": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/WebBrowser/dist/mcp-server.js"],
+			"args": ["WebBrowser/dist/mcp-server.js"],
 			"env": {
 				"BROWSER_DEFAULT_TIMEOUT_MS": "20000",
 				"BROWSER_MAX_TIMEOUT_MS": "60000",
@@ -131,15 +175,26 @@ Update your LM Studio `mcp.json`:
 		},
 		"calculator": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Calculator/dist/mcp-server.js"],
+			"args": ["Calculator/dist/mcp-server.js"],
 			"env": {
 				"CALCULATOR_DEFAULT_PRECISION": "12",
 				"CALCULATOR_MAX_PRECISION": "20"
 			}
 		},
+		"document-scraper": {
+			"command": "node",
+			"args": ["DocumentScraper/dist/mcp-server.js"],
+			"env": {
+				"DOC_SCRAPER_DEFAULT_TIMEOUT_MS": "20000",
+				"DOC_SCRAPER_MAX_TIMEOUT_MS": "60000",
+				"DOC_SCRAPER_MAX_CONTENT_BYTES": "52428800",
+				"DOC_SCRAPER_MAX_CONTENT_CHARS": "50000",
+				"DOC_SCRAPER_WORKSPACE_ROOT": ""
+			}
+		},
 		"clock": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Clock/dist/mcp-server.js"],
+			"args": ["Clock/dist/mcp-server.js"],
 			"env": {
 				"CLOCK_DEFAULT_TIMEZONE": "",
 				"CLOCK_DEFAULT_LOCALE": "en-US"
@@ -147,23 +202,72 @@ Update your LM Studio `mcp.json`:
 		},
 		"browserless": {
 			"command": "node",
-			"args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Browserless/dist/mcp-server.js"],
+			"args": ["Browserless/dist/mcp-server.js"],
 			"env": {
-				"BROWSERLESS_API_KEY": "your-browserless-api-token-here",
+				"BROWSERLESS_API_KEY": "",
 				"BROWSERLESS_DEFAULT_REGION": "production-sfo",
 				"BROWSERLESS_DEFAULT_TIMEOUT_MS": "30000",
 				"BROWSERLESS_MAX_TIMEOUT_MS": "120000",
 				"BROWSERLESS_CONCURRENCY_LIMIT": "5"
+			}
+		},
+		"ask-user": {
+			"command": "node",
+			"args": ["AskUser/dist/mcp-server.js"],
+			"env": {
+				"ASK_USER_DB_PATH": "./memory.db",
+				"ASK_USER_DEFAULT_EXPIRES_SECONDS": "1800",
+				"ASK_USER_MAX_EXPIRES_SECONDS": "86400",
+				"ASK_USER_MAX_QUESTIONS": "20"
+			}
+		},
+		"rag": {
+			"command": "node",
+			"args": ["RAG/dist/mcp-server.js"],
+			"env": {
+				"RAG_DB_PATH": "./rag.db",
+				"RAG_EMBEDDINGS_MODE": "lmstudio",
+				"RAG_EMBEDDING_MODEL": "nomic-ai/nomic-embed-text-v1.5",
+				"RAG_DOC_SCRAPER_ENDPOINT": "http://localhost:3336/tools/read_document",
+				"RAG_ASK_USER_ENDPOINT": "http://localhost:3338/tools/ask_user_interview"
 			}
 		}
 	}
 }
 ```
 
+**Note**: For production use, prefer `npm run mcp:print-config` or `npm run mcp:sync-lmstudio` so paths are generated automatically for your machine.  
+Phase 2 will introduce unified orchestrator MCP server and multi-interface launchers.
+
+## Browserless MCP Cloud Usage
+
+### Quick Setup for LLM/Agent Workflows
+
+- **Get a Browserless API token** from https://browserless.io/account/
+- **Set your token** in your environment (recommended: `.env` or system env):
+  - `BROWSERLESS_API_TOKEN=your-token-here`
+- **No hardcoding:** Never commit your token to version control.
+
+### Tool Registration (Cloud)
+- The Browserless tool is automatically registered to the official MCP endpoint:
+  - Endpoint: `https://mcp.browserless.io/mcp?token=YOUR_TOKEN`
+  - The token is loaded from `BROWSERLESS_API_TOKEN` or `BROWSERLESS_API_KEY`.
+- For local development, the tool can run on `http://localhost:3003` (see Browserless/README.md for details).
+
+### LLM/Agent Integration
+- LLMs and agents should use the MCP endpoint for all browser automation tasks.
+- Supported operations: screenshots, PDFs, scraping, content extraction, BrowserQL, and more.
+- For advanced usage, see [Browserless/README.md](Browserless/README.md).
+
+### Example `.env` file
+```
+BROWSERLESS_API_TOKEN=your-browserless-api-token-here
 ```
 
-**Note**: Update paths to match your installation directory.  
-Phase 2 will introduce unified orchestrator MCP server and multi-interface launchers.
+### Troubleshooting
+- If you see authentication errors, verify your token and that it is set in the environment.
+- For protocol errors, ensure you are using the correct endpoint (MCP for cloud, HTTP for local).
+- See [Browserless official docs](https://docs.browserless.io/) for more.
 
 ## Testing & CI/CD
 
@@ -182,6 +286,45 @@ Automated on every push/PR:
 - TypeScript compilation + type check
 - Jest test suite + coverage threshold
 - Build verification
+- Startup readiness gate (`startup:check:strict`)
+
+Required GitHub Actions secret:
+- `BROWSERLESS_API_KEY`
+
+## Troubleshooting Readiness Checks
+
+### ✗ "missing built MCP binary"
+
+**Fix**: Rebuild and verify the artifact.
+```bash
+npm run build
+npm run verify-tools
+```
+
+### ✗ "mcp.json block is not valid JSON" or path mismatch
+
+**Fix**: Ensure paths in README MCP section match the exact `dist/mcp-server.js` artifact locations.
+```bash
+npm run verify:mcp-sync
+```
+
+### ✗ "BROWSERLESS_API_KEY is not configured" (local)
+
+**Fix**: Set the environment variable for local testing.
+```bash
+# macOS/Linux
+read -rsp "BROWSERLESS_API_KEY: " BROWSERLESS_API_KEY; echo
+export BROWSERLESS_API_KEY
+npm run startup:check
+
+# Windows PowerShell
+$env:BROWSERLESS_API_KEY = Read-Host "BROWSERLESS_API_KEY"
+npm run startup:check
+```
+
+### ✗ CI build fails on "Startup readiness (strict)"
+
+**Fix**: Add GitHub Actions secret `BROWSERLESS_API_KEY` in Settings → Secrets → Actions.
 
 ## Memory System
 
@@ -200,15 +343,20 @@ See [Memory/README.md](Memory/README.md) for details.
 |----------|---------|
 | [AGENT_ROADMAP.md](AGENT_ROADMAP.md) | Implementation phases + progress |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design + patterns |
+| [docs/CICD.md](docs/CICD.md) | CI gates + branch protection guidance |
 | [docs/CODE-QUALITY.md](docs/CODE-QUALITY.md) | Quality standards + benchmarks |
+| [docs/VNEXT_FEATURES.md](docs/VNEXT_FEATURES.md) | Source of truth for intentional next-version scope |
+| [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | Release hardening and sign-off steps |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | PR workflow + code review checklist |
 | [Memory/README.md](Memory/README.md) | Memory persistence API |
+
 
 ## Features & Status
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| 5 core tools | ✅ | Terminal, WebBrowser, Calculator, Clock, Browserless |
+| Tool call normalization | ✅ | Canonicalizes all tool calls before execution |
+| 8 core tools | ✅ | Terminal, WebBrowser, Calculator, DocumentScraper, Clock, Browserless, AskUser, RAG |
 | Biome format + lint | ✅ | CI gate, auto-fix on save |
 | Jest test suite | ✅ | 80% coverage minimum |
 | SQLite memory | ✅ | Task history, patterns, rules |
@@ -218,7 +366,11 @@ See [Memory/README.md](Memory/README.md) for details.
 | Agent orchestrator (Phase 3) | 🔄 | Multi-step task planning + pattern replay |
 | Multi-interface launchers (Phase 4) | 🔄 | LM Studio + CLI + VS Code + HTTP |
 
+
 ## Contributing
+
+### Tool Call Normalization
+All contributors must ensure that any new tool or workflow entry point uses the shared normalization utility for tool calls. This is critical for maintaining compatibility and reliability across the system.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Development setup
@@ -228,7 +380,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 ## License
 
-MIT — See LICENSE file
+Non-Commercial License (Commercial use requires a separate negotiated agreement with royalties) — See LICENSE file.
+Original Author: Shawna Pakbin
 
 ## Contact
 

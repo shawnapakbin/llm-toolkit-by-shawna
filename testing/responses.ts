@@ -28,7 +28,7 @@ export function createResponse<T>(
   success: boolean,
   data?: T,
   error?: Partial<ToolError>,
-  durationMs?: number
+  durationMs?: number,
 ): ToolResponse<T> {
   return {
     success,

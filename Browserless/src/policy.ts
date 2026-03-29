@@ -1,19 +1,15 @@
 /**
  * Browserless Policy Module
- * 
+ *
  * Validates API configuration, URLs, and enforces security constraints.
  */
 
 /**
  * Valid Browserless API regions.
  */
-export const VALID_REGIONS = [
-  "production-sfo",
-  "production-lon",
-  "production-ams",
-] as const;
+export const VALID_REGIONS = ["production-sfo", "production-lon", "production-ams"] as const;
 
-export type BrowserlessRegion = typeof VALID_REGIONS[number];
+export type BrowserlessRegion = (typeof VALID_REGIONS)[number];
 
 /**
  * Default timeout for Browserless operations in milliseconds.
@@ -42,7 +38,7 @@ export const MAX_CONCURRENCY_LIMIT = 20;
 
 /**
  * Validates whether a region string is a valid Browserless region.
- * 
+ *
  * @param region - The region to validate
  * @returns true if the region is valid
  */
@@ -52,7 +48,7 @@ export function isValidRegion(region: string): region is BrowserlessRegion {
 
 /**
  * Validates and normalizes timeout value.
- * 
+ *
  * @param timeoutMs - The timeout value in milliseconds
  * @returns A valid timeout within acceptable range
  */
@@ -60,13 +56,13 @@ export function validateTimeout(timeoutMs: number | undefined): number {
   if (timeoutMs === undefined || !Number.isFinite(timeoutMs)) {
     return DEFAULT_TIMEOUT_MS;
   }
-  
+
   return Math.min(Math.max(timeoutMs, MIN_TIMEOUT_MS), MAX_TIMEOUT_MS);
 }
 
 /**
  * Validates API key format and presence.
- * 
+ *
  * @param apiKey - The API key to validate
  * @returns true if the API key appears valid
  */
@@ -74,7 +70,7 @@ export function isValidApiKey(apiKey: string | undefined): boolean {
   if (!apiKey || typeof apiKey !== "string") {
     return false;
   }
-  
+
   const trimmed = apiKey.trim();
   // Browserless API keys should be at least 10 characters
   return trimmed.length >= 10;
@@ -98,17 +94,17 @@ const BLOCKED_HOSTNAME_PATTERNS = [
 
 /**
  * Checks if a hostname is blocked for SSRF protection.
- * 
+ *
  * @param hostname - The hostname to check
  * @returns true if the hostname is blocked
  */
 export function isBlockedHostname(hostname: string): boolean {
-  return BLOCKED_HOSTNAME_PATTERNS.some(pattern => pattern.test(hostname));
+  return BLOCKED_HOSTNAME_PATTERNS.some((pattern) => pattern.test(hostname));
 }
 
 /**
  * Validates a target URL for safety.
- * 
+ *
  * @param url - The URL to validate
  * @returns An object with validation result and optional error message
  */
@@ -143,7 +139,7 @@ export const MAX_CODE_LENGTH = 10000;
 
 /**
  * Checks if custom code is too long.
- * 
+ *
  * @param code - The code to check
  * @returns true if the code exceeds maximum length
  */
@@ -166,17 +162,17 @@ const POTENTIALLY_UNSAFE_CODE_PATTERNS = [
  * Checks if code contains potentially unsafe patterns.
  * Note: This is a basic check and not a complete security solution.
  * The Browserless service should provide its own sandboxing.
- * 
+ *
  * @param code - The code to check
  * @returns true if the code contains unsafe patterns
  */
 export function hasUnsafeCodePatterns(code: string): boolean {
-  return POTENTIALLY_UNSAFE_CODE_PATTERNS.some(pattern => pattern.test(code));
+  return POTENTIALLY_UNSAFE_CODE_PATTERNS.some((pattern) => pattern.test(code));
 }
 
 /**
  * Validates concurrency limit.
- * 
+ *
  * @param limit - The concurrency limit to validate
  * @returns A valid concurrency limit within acceptable range
  */
@@ -184,6 +180,6 @@ export function validateConcurrencyLimit(limit: number | undefined): number {
   if (limit === undefined || !Number.isFinite(limit) || limit < 1) {
     return DEFAULT_CONCURRENCY_LIMIT;
   }
-  
+
   return Math.min(Math.max(Math.floor(limit), 1), MAX_CONCURRENCY_LIMIT);
 }

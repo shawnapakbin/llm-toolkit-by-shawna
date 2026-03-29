@@ -55,3 +55,7 @@ yarn.lock
 # Temporary
 .tmp/
 *.tmp
+
+# Private notes (local only)
+private.md
+**/private.md

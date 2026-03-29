@@ -1,6 +1,6 @@
 /**
  * Calculator Policy Module
- * 
+ *
  * Validates expressions and enforces calculation constraints.
  */
 
@@ -21,24 +21,27 @@ export const MIN_PRECISION = 2;
 
 /**
  * Validates precision value and clamps it within allowed range.
- * 
+ *
  * @param precision - The requested precision value
  * @param defaultPrecision - The default precision to use for invalid values
  * @returns A valid precision value within [MIN_PRECISION, MAX_PRECISION]
  */
-export function validatePrecision(precision: number | undefined, defaultPrecision: number = DEFAULT_PRECISION): number {
+export function validatePrecision(
+  precision: number | undefined,
+  defaultPrecision: number = DEFAULT_PRECISION,
+): number {
   const precisionValue = Number(precision ?? defaultPrecision);
-  
+
   if (!Number.isFinite(precisionValue)) {
     return defaultPrecision;
   }
-  
+
   return Math.min(Math.max(Math.trunc(precisionValue), MIN_PRECISION), MAX_PRECISION);
 }
 
 /**
  * Checks if an expression is empty or invalid.
- * 
+ *
  * @param expression - The expression to validate
  * @returns true if the expression is valid (non-empty after trimming)
  */
@@ -53,7 +56,7 @@ export const MAX_EXPRESSION_LENGTH = 1000;
 
 /**
  * Checks if an expression exceeds maximum allowed length.
- * 
+ *
  * @param expression - The expression to check
  * @returns true if the expression is too long
  */
@@ -70,16 +73,16 @@ const POTENTIALLY_UNSAFE_PATTERNS = [
   /require\s*\(/i,
   /eval\s*\(/i,
   /function\s*\(/i,
-  /=>/,  // Arrow functions
+  /=>/, // Arrow functions
   /\bthis\b/,
 ];
 
 /**
  * Checks if an expression contains potentially unsafe patterns.
- * 
+ *
  * @param expression - The expression to check
  * @returns true if the expression contains unsafe patterns
  */
 export function hasUnsafePatterns(expression: string): boolean {
-  return POTENTIALLY_UNSAFE_PATTERNS.some(pattern => pattern.test(expression));
+  return POTENTIALLY_UNSAFE_PATTERNS.some((pattern) => pattern.test(expression));
 }

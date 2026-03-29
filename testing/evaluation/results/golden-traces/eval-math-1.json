@@ -1,0 +1,17 @@
+{
+  "traceId": "1774498306361-kq4bjb8o",
+  "workflowId": "eval-math-1",
+  "workflowName": "Math Engineering Simulation",
+  "status": "success",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "compute",
+      "toolId": "calculator",
+      "success": true,
+      "retries": 0,
+      "durationMs": 0
+    }
+  ],
+  "generatedAt": "2026-03-26T04:11:46.361Z"
+}

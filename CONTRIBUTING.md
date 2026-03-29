@@ -10,6 +10,13 @@ npm run build
 npm test
 ```
 
+## Contributor Attribution Policy
+
+- Original author attribution must remain: Shawna Pakbin.
+- Any contributor may add their name to contributor attribution records.
+- No contributor may delete, alter, or obscure any existing contributor name.
+- Pull requests that remove prior contributor attribution may be rejected.
+
 ### Making Changes
 
 #### 1. Before You Start
@@ -17,8 +24,10 @@ npm test
 - Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design
 - Read [docs/CODE-QUALITY.md](docs/CODE-QUALITY.md) for standards
 
+
 #### 2. Write Code
 - Follow the [Tool Contract Pattern](docs/ARCHITECTURE.md#1-tool-contract-pattern)
+- **Enforce tool call normalization**: All new tool or workflow entry points must use the shared normalization utility (`shared/toolCallNormalizer.ts`) to ensure canonical tool call schema and compatibility across the system.
 - Use standardized response envelope (see `testing/responses.ts`)
 - Add error handling with proper error codes
 - Include JSDoc comments on all exports
@@ -43,6 +52,11 @@ git push origin your-branch-name
 - Title: `feat(ToolName): what changed`
 - Description: Explain **why** this change is needed
 - Link related issues
+- If the PR introduces next-version feature scope, update [docs/VNEXT_FEATURES.md](docs/VNEXT_FEATURES.md)
+
+#### 6. Mark vNext Scope
+- Use [docs/VNEXT_FEATURES.md](docs/VNEXT_FEATURES.md) as the source of truth for intentional upcoming-release features.
+- Feature-level additions not listed there may be treated as out-of-scope drift during release hardening.
 
 ---
 

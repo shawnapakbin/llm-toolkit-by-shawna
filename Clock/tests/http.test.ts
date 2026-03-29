@@ -1,6 +1,6 @@
 /**
  * Clock HTTP Endpoint Integration Tests
- * 
+ *
  * Tests the Clock HTTP API endpoint behavior.
  */
 
@@ -11,11 +11,11 @@ describe("Clock HTTP Endpoints", () => {
   describe("GET /health", () => {
     it("should return health status", async () => {
       const response = await request(app).get("/health");
-      
+
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         ok: true,
-        service: "lm-studio-clock-tool"
+        service: "lm-studio-clock-tool",
       });
     });
   });
@@ -23,7 +23,7 @@ describe("Clock HTTP Endpoints", () => {
   describe("GET /tool-schema", () => {
     it("should return tool schema", async () => {
       const response = await request(app).get("/tool-schema");
-      
+
       expect(response.status).toBe(200);
       expect(response.body.name).toBe("get_current_datetime");
       expect(response.body.parameters.type).toBe("object");
@@ -32,10 +32,8 @@ describe("Clock HTTP Endpoints", () => {
 
   describe("POST /tools/get_current_datetime", () => {
     it("should return current datetime without parameters", async () => {
-      const response = await request(app)
-        .post("/tools/get_current_datetime")
-        .send({});
-      
+      const response = await request(app).post("/tools/get_current_datetime").send({});
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeDefined();
@@ -47,7 +45,7 @@ describe("Clock HTTP Endpoints", () => {
       const response = await request(app)
         .post("/tools/get_current_datetime")
         .send({ timeZone: "America/New_York" });
-      
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.requestedTimeZone).toBe("America/New_York");
@@ -58,7 +56,7 @@ describe("Clock HTTP Endpoints", () => {
       const response = await request(app)
         .post("/tools/get_current_datetime")
         .send({ timeZone: "UTC" });
-      
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.requestedTimeZone).toBe("UTC");
@@ -68,7 +66,7 @@ describe("Clock HTTP Endpoints", () => {
       const response = await request(app)
         .post("/tools/get_current_datetime")
         .send({ timeZone: "Invalid/Timezone" });
-      
+
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
       expect(response.body.error).toContain("Invalid IANA timezone");
@@ -78,7 +76,7 @@ describe("Clock HTTP Endpoints", () => {
       const response = await request(app)
         .post("/tools/get_current_datetime")
         .send({ timeZone: "a".repeat(101) });
-      
+
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
       expect(response.body.error).toContain("too long");
@@ -88,7 +86,7 @@ describe("Clock HTTP Endpoints", () => {
       const response = await request(app)
         .post("/tools/get_current_datetime")
         .send({ locale: "a".repeat(21) });
-      
+
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
       expect(response.body.error).toContain("too long");
@@ -98,7 +96,7 @@ describe("Clock HTTP Endpoints", () => {
       const response = await request(app)
         .post("/tools/get_current_datetime")
         .send({ locale: "fr-FR" });
-      
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.locale).toBe("fr-FR");
@@ -108,17 +106,15 @@ describe("Clock HTTP Endpoints", () => {
       const response = await request(app)
         .post("/tools/get_current_datetime")
         .send({ locale: "invalid-locale" });
-      
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.locale).toBe("en-US");
     });
 
     it("should return correct date structure", async () => {
-      const response = await request(app)
-        .post("/tools/get_current_datetime")
-        .send({});
-      
+      const response = await request(app).post("/tools/get_current_datetime").send({});
+
       expect(response.status).toBe(200);
       expect(response.body.data.date).toBeDefined();
       expect(response.body.data.date.year).toBeGreaterThan(2020);
@@ -130,10 +126,8 @@ describe("Clock HTTP Endpoints", () => {
     });
 
     it("should return correct time structure", async () => {
-      const response = await request(app)
-        .post("/tools/get_current_datetime")
-        .send({});
-      
+      const response = await request(app).post("/tools/get_current_datetime").send({});
+
       expect(response.status).toBe(200);
       expect(response.body.data.time).toBeDefined();
       expect(response.body.data.time.hour).toBeGreaterThanOrEqual(0);
@@ -148,7 +142,7 @@ describe("Clock HTTP Endpoints", () => {
       const response = await request(app)
         .post("/tools/get_current_datetime")
         .send({ timeZone: "America/New_York" });
-      
+
       expect(response.status).toBe(200);
       expect(response.body.data.timezoneOffsetMinutes).toBeDefined();
       expect(response.body.data.timezoneNameShort).toBeDefined();
@@ -156,13 +150,11 @@ describe("Clock HTTP Endpoints", () => {
     });
 
     it("should handle both timezone and locale together", async () => {
-      const response = await request(app)
-        .post("/tools/get_current_datetime")
-        .send({ 
-          timeZone: "Asia/Tokyo",
-          locale: "ja-JP"
-        });
-      
+      const response = await request(app).post("/tools/get_current_datetime").send({
+        timeZone: "Asia/Tokyo",
+        locale: "ja-JP",
+      });
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.requestedTimeZone).toBe("Asia/Tokyo");

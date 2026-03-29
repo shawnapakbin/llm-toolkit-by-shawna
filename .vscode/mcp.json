@@ -1,9 +1,9 @@
 {
-	"servers": {
-		"browserless-docs": {
-			"type": "http",
-			"url": "https://browserless-docs.mcp.kapa.ai"
-		}
-	},
-	"inputs": []
+  "servers": {
+    "browserless-docs": {
+      "type": "http",
+      "url": "https://browserless-docs.mcp.kapa.ai"
+    }
+  },
+  "inputs": []
 }

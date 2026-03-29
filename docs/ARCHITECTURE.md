@@ -12,16 +12,21 @@
 
 ## Core Patterns
 
-### 1. Tool Contract Pattern
 
-Every tool follows a standardized input/output contract:
+### 1. Tool Contract Pattern & Normalization Layer
+
+Every tool follows a standardized input/output contract. All tool calls—regardless of origin (HTTP, MCP, or workflow runner)—are normalized to a canonical schema before execution using a shared normalization utility (`shared/toolCallNormalizer.ts`). This ensures compatibility with both legacy and new tool call formats, reduces integration bugs, and enables robust multi-model orchestration. The normalization is enforced in both the MCP server and workflow runner.
 
 **Input**: Zod-validated parameters (type-safe, documented)
+
 ```typescript
 const schema = z.object({
   command: z.string().min(1),
   timeoutMs: z.number().positive().optional(),
 });
+// All tool calls are normalized before dispatch:
+import { normalizeToolCall } from "../shared/toolCallNormalizer";
+const canonicalCall = normalizeToolCall(rawInput, { taskRunId });
 ```
 
 **Output**: Standardized response envelope (consistency across all tools)
@@ -90,6 +95,7 @@ SQLite tables capture agent intelligence:
 | **Terminal** | Execute shell commands (OS-aware) | 3333 | ✅ Working |
 | **WebBrowser** | Fetch + parse web pages | 3334 | ✅ Working |
 | **Calculator** | Math expressions (engineering notation) | 3335 | ✅ Working |
+| **AskUser** | Interactive interview and clarification workflows | 3338 | ✅ Working |
 | **Clock** | Current date/time + timezone | 3337 | ✅ Working |
 | **Browserless** | Advanced browser automation (BrowserQL, screenshots, PDFs) | 3003 | ✅ Working |
 | **Git** (Phase 2) | Clone, commit, branch, merge | TBD | 🔄 Planned |

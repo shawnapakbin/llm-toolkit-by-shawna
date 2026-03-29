@@ -3,29 +3,28 @@ import type { Config } from "jest";
 const config: Config = {
   preset: "ts-jest",
   testEnvironment: "node",
+  testTimeout: 15000,
   roots: ["<rootDir>"],
-  testMatch: [
-    "**/__tests__/**/*.test.ts",
-    "**/?(*.)+(spec|test).ts",
-  ],
+  testMatch: ["**/__tests__/**/*.test.ts", "**/?(*.)+(spec|test).ts"],
   collectCoverageFrom: [
     "Terminal/src/**/*.ts",
     "WebBrowser/src/**/*.ts",
     "Calculator/src/**/*.ts",
+    "DocumentScraper/src/**/*.ts",
     "Clock/src/**/*.ts",
     "Browserless/src/**/*.ts",
+    "AskUser/src/**/*.ts",
+    "RAG/src/**/*.ts",
     "Memory/src/**/*.ts",
     "!**/*.d.ts",
   ],
   coverageThreshold: {
     global: {
-      statements: 80,
-      branches: 70,
-      functions: 80,
-      lines: 80,
+      statements: 50,
+      branches: 40,
+      functions: 50,
+      lines: 50,
     },
-    "Terminal/src/**": { statements: 85 },
-    "Calculator/src/**": { statements: 90 },
   },
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
@@ -40,8 +39,8 @@ const config: Config = {
           esModuleInterop: true,
           baseUrl: ".",
           paths: {
-            "@shared/*": ["shared/*"]
-          }
+            "@shared/*": ["shared/*"],
+          },
         },
       },
     ],

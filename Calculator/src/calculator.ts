@@ -1,4 +1,4 @@
-import { create, all, type MathJsStatic } from "mathjs";
+import { type MathJsStatic, all, create } from "mathjs";
 
 const math: MathJsStatic = create(all, {});
 
@@ -30,7 +30,7 @@ const superscriptMap: Record<string, string> = {
   "⁺": "+",
   "⁻": "-",
   "⁽": "(",
-  "⁾": ")"
+  "⁾": ")",
 };
 
 function normalizeSuperscripts(expression: string): string {
@@ -53,7 +53,7 @@ function normalizeEngineeringSuffixes(expression: string): string {
     k: "1e3",
     M: "1e6",
     G: "1e9",
-    T: "1e12"
+    T: "1e12",
   };
 
   return expression.replace(/\b(\d+(?:\.\d+)?)\s*([pnumkMGT])\b/g, (_value, numberPart, suffix) => {
@@ -98,7 +98,7 @@ export function evaluateExpression(input: EvaluateInput): EvaluateResult {
       precision: input.precision,
       notation: "auto",
       lowerExp: -9,
-      upperExp: 12
+      upperExp: 12,
     });
 
     return {
@@ -106,7 +106,7 @@ export function evaluateExpression(input: EvaluateInput): EvaluateResult {
       expression: input.expression,
       normalizedExpression,
       precision: input.precision,
-      value
+      value,
     };
   } catch (error) {
     return {
@@ -115,7 +115,7 @@ export function evaluateExpression(input: EvaluateInput): EvaluateResult {
       normalizedExpression,
       precision: input.precision,
       value: "",
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }

@@ -1,513 +1,202 @@
-# Browserless.io Integration for LM Studio
+# Browserless MCP Tool
 
-A powerful browser automation tool that integrates [Browserless.io](https://browserless.io) with LM Studio. This tool provides advanced web automation capabilities including stealth browsing, CAPTCHA solving, bot detection bypass, and cloud browser management.
+Advanced browser automation for LLM agents and workflows, powered by [Browserless.io](https://browserless.io). This package provides Model Context Protocol (MCP) tool integration for web scraping, search, site mapping, export, BrowserQL, and custom Puppeteer code execution.
 
 ## Features
 
-### Core Capabilities
-- **Screenshots**: Capture full page or element-specific screenshots in PNG, JPEG, or WebP
-- **PDF Generation**: Convert web pages to PDFs with customizable formats and options
-- **Web Scraping**: Extract structured data using CSS selectors
-- **Content Extraction**: Get full HTML and text content from web pages
-- **Unblock Protected Sites**: Bypass bot detection, CAPTCHAs, and Cloudflare challenges
-- **BrowserQL**: Execute complex browser automation using GraphQL-based queries
-
-### Advanced Features
-- **Stealth Mode**: Advanced anti-bot detection and human-like behavior
-- **CAPTCHA Solving**: Automatic CAPTCHA and Cloudflare challenge resolution
-- **Regional Endpoints**: Choose from US West, UK, or Amsterdam for lower latency
-- **Session Management**: Persistent browser sessions with reconnection support
-- **Residential Proxies**: Built-in proxy rotation (requires Browserless plan)
+- **Smart Scraper**: Cascading strategies (HTTP fetch, proxy, headless browser, CAPTCHA solving)
+- **BrowserQL**: GraphQL-based stealth-first extraction — recommended for dynamic/JS-heavy sites
+- **Custom Function**: Execute Puppeteer JavaScript code on Browserless cloud
+- **Download**: Trigger file downloads via Puppeteer
+- **Export**: Export webpages in native format (HTML, PDF, image, ZIP)
+- **Search**: Web search via SearXNG with optional result scraping
+- **Map**: Discover and map all URLs on a website
+- **Stealth Mode**: Bypass bot detection and CAPTCHAs
+- **Regional Endpoints**: US West (SFO), Europe London, Europe Amsterdam
 
 ## Prerequisites
 
-- Node.js 18+ installed
-- A [Browserless.io](https://browserless.io) account (free tier available)
-- Browserless API token from your [dashboard](https://browserless.io/account/)
+- Node.js 18+
+- [Browserless.io](https://browserless.io) account (free tier available)
+- API token from your [dashboard](https://browserless.io/account/)
 
 ## Installation
 
-1. **Install Dependencies**
-   ```bash
-   cd Browserless
-   npm install
-   ```
+```bash
+cd Browserless
+npm install
+npm run build
+```
 
-2. **Configure Environment**
-   Create a `.env` file in the `Browserless` directory:
-   ```env
-   # Required: Your Browserless API token
-   BROWSERLESS_API_KEY=your-api-token-here
-   
-   # Optional: Default region (production-sfo, production-lon, production-ams)
-   BROWSERLESS_DEFAULT_REGION=production-sfo
-   
-   # Optional: Timeout settings
-   BROWSERLESS_DEFAULT_TIMEOUT_MS=30000
-   BROWSERLESS_MAX_TIMEOUT_MS=120000
-   
-   # Optional: Concurrency limit for simultaneous requests
-   BROWSERLESS_CONCURRENCY_LIMIT=5
-   
-   # Optional: HTTP server port
-   PORT=3003
-   ```
+## LM Studio Configuration
 
-3. **Build the Project**
-   ```bash
-   npm run build
-   ```
-
-## Usage
-
-### As MCP Server (for LM Studio)
-
-Add this configuration to your LM Studio `mcp.json`:
+Add to your LM Studio `mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "browserless": {
       "command": "node",
-      "args": ["C:/Users/YOUR_USERNAME/Development/llm-toolkit/Browserless/dist/mcp-server.js"],
+      "args": ["Browserless/dist/mcp-server.js"],
       "env": {
-        "BROWSERLESS_API_KEY": "your-api-token-here",
         "BROWSERLESS_DEFAULT_REGION": "production-sfo",
-        "BROWSERLESS_DEFAULT_TIMEOUT_MS": "30000",
-        "BROWSERLESS_MAX_TIMEOUT_MS": "120000",
-        "BROWSERLESS_CONCURRENCY_LIMIT": "5"
+        "BROWSERLESS_DEFAULT_TIMEOUT_MS": "30000"
       }
     }
   }
 }
 ```
 
-**Note**: Update the path to match your installation directory.
+> The `apiKey` parameter is **required** on every tool call. Pass your Browserless API token directly in each tool invocation — the LLM will include it from the MCP configuration.
 
-### As HTTP Server
+## MCP Tools
 
-Start the HTTP server:
-```bash
-npm start
-```
+The server exposes **7 tools**:
 
-The server will run on `http://localhost:3003` (or the port specified in `.env`).
+### browserless_smartscraper
 
-## Available Tools
+Scrapes any webpage using cascading strategies — HTTP fetch, proxy, headless browser, and CAPTCHA solving.
 
-### 1. browserless_screenshot
-Captures a screenshot of a web page.
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| url | string | Yes | — | The URL to scrape |
+| formats | string[] | No | ["markdown"] | Output formats: markdown, html, screenshot, pdf, links |
+| timeout | number | No | 30000 | Request timeout in milliseconds |
+| apiKey | string | Yes | — | Browserless API key |
 
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to screenshot
-- `fullPage` (optional): Capture full scrollable page
-- `type` (optional): Image format (png, jpeg, webp)
-- `quality` (optional): Image quality 0-100
-- `selector` (optional): CSS selector for specific element
-- `waitForTimeout` (optional): Wait time before screenshot
-- `waitForSelector` (optional): Wait for element before screenshot
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
+### browserless_bql
 
-**Example:**
-```json
-{
-  "url": "https://example.com",
-  "fullPage": true,
-  "type": "png"
+Execute BrowserQL GraphQL mutations for robust extraction from dynamic, JS-heavy, or bot-protected sites. **Recommended over smartscraper for modern websites.**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| query | string | Yes | — | BrowserQL mutation string (must use `mutation {}` syntax) |
+| timeout | number | No | 30000 | Request timeout in milliseconds |
+| apiKey | string | Yes | — | Browserless API key |
+
+**Example BQL mutation:**
+```graphql
+mutation {
+  goto(url: "https://example.com", waitUntil: domContentLoaded) { status }
+  text { text }
 }
 ```
 
-### 2. browserless_pdf
-Generates a PDF from a web page.
+### browserless_function
 
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to convert to PDF
-- `format` (optional): Page format (A4, Letter, Legal, etc.)
-- `landscape` (optional): Use landscape orientation
-- `printBackground` (optional): Include background graphics
-- `scale` (optional): Scale factor (0.1-2)
-- `waitForTimeout` (optional): Wait time before PDF generation
-- `waitForSelector` (optional): Wait for element before PDF
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
+Executes custom Puppeteer JavaScript code on the Browserless cloud.
 
-**Example:**
-```json
-{
-  "url": "https://example.com",
-  "format": "A4",
-  "landscape": false,
-  "printBackground": true
-}
-```
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| code | string | Yes | ESM code; default export receives `{ page, context }`, returns `{ data, type }` |
+| context | object | No | Optional context object passed to the function |
+| timeout | number | No | Request timeout in milliseconds |
+| apiKey | string | Yes | Browserless API key |
 
-### 3. browserless_scrape
-Extracts structured data using CSS selectors.
+### browserless_download
 
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to scrape
-- `elements` (required): Array of selectors to extract
-- `waitForTimeout` (optional): Wait time before scraping
-- `waitForSelector` (optional): Wait for element before scraping
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
+Runs custom Puppeteer code and returns the file Chrome downloads during execution.
 
-**Example:**
-```json
-{
-  "url": "https://news.ycombinator.com",
-  "elements": [
-    {"selector": ".titleline"},
-    {"selector": ".score"}
-  ]
-}
-```
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| code | string | Yes | ESM code that triggers a file download |
+| context | object | No | Optional context object |
+| timeout | number | No | Request timeout in milliseconds |
+| apiKey | string | Yes | Browserless API key |
 
-### 4. browserless_content
-Extracts full HTML and text content from a page.
+### browserless_export
 
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to extract content from
-- `waitForTimeout` (optional): Wait time before extraction
-- `waitForSelector` (optional): Wait for element before extraction
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
+Exports a webpage by URL in its native format. Set `includeResources` to bundle all assets into a ZIP.
 
-**Example:**
-```json
-{
-  "url": "https://example.com"
-}
-```
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| url | string | Yes | The URL to export |
+| gotoOptions | object | No | Puppeteer `Page.goto()` options |
+| bestAttempt | boolean | No | Proceed even if awaited events fail |
+| includeResources | boolean | No | Bundle CSS/JS/images into a ZIP |
+| waitForTimeout | number | No | Wait (ms) after page load before exporting |
+| timeout | number | No | Request timeout in milliseconds |
+| apiKey | string | Yes | Browserless API key |
 
-### 5. browserless_unblock
-Bypasses bot detection and CAPTCHAs on protected sites.
+### browserless_search
 
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to unblock
-- `cookies` (optional): Return cookies
-- `content` (optional): Return page content
-- `screenshot` (optional): Return screenshot
-- `browserWSEndpoint` (optional): Return WebSocket endpoint for Puppeteer/Playwright
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
+Searches the web via SearXNG and optionally scrapes each result.
 
-**Example:**
-```json
-{
-  "url": "https://protected-site.com",
-  "content": true,
-  "screenshot": true
-}
-```
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| query | string | Yes | — | Search query |
+| limit | number | No | 10 | Max results |
+| lang | string | No | "en" | Language code |
+| country | string | No | — | Country code |
+| location | string | No | — | Location string |
+| tbs | string | No | — | Time filter: day, week, month, year |
+| sources | string[] | No | ["web"] | web, news, images |
+| categories | string[] | No | — | github, research, pdf |
+| scrapeOptions | object | No | — | Per-result scrape options (formats, onlyMainContent, includeTags, excludeTags) |
+| timeout | number | No | 30000 | Request timeout in milliseconds |
+| apiKey | string | Yes | — | Browserless API key |
 
-### 6. browserless_bql
-Executes complex browser automation using BrowserQL (GraphQL-based browser automation language). 
+### browserless_map
 
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `query` (required): BrowserQL GraphQL mutation
-- `variables` (optional): GraphQL variables
-- `operationName` (optional): Operation name
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
+Discovers and maps all URLs on a website via sitemaps and link extraction.
 
-**Session Recording:**
-All BQL queries are recorded by default (`replay=true`) for debugging and replay in the Browserless IDE. Access recorded sessions in your [Browserless Dashboard](https://browserless.io/account/).
-
-**BrowserQL Capabilities:** 
-
-1. **Stealth & Bot-Detection Evasion**
-   - Use `/stealth/bql` endpoint for anti-detection
-   - Human-like fingerprints and randomized behavior
-   - Residential and third-party proxy integration
-
-2. **Navigation**
-   - `goto` mutation with `waitUntil` conditions (firstMeaningfulPaint, networkIdle, load, etc.)
-
-3. **Page Interaction**
-   - `click`: Humanized clicking with scrolling and visibility checks
-   - `type`: Typing with randomized delays for human-like behavior
-   - Deep selectors for iframes and shadow DOM
-
-4. **Form Handling**
-   - Fill inputs, select dropdowns, click buttons
-   - Multi-field form automation with CAPTCHA solving
-
-5. **Waiting & Synchronization**
-   - `waitForNavigation`, `waitForRequest`, `waitForResponse`
-   - `waitForSelector`, `waitForTimeout`
-
-6. **Data Extraction**
-   - `text` mutation: Extract text content
-   - `html` mutation: Extract HTML
-
-7. **CAPTCHA Solving**
-   - `solve` mutation: Solves Cloudflare, reCAPTCHA, hCaptcha, etc.
-
-8. **Media Capture**
-   - `screenshot` mutation: Capture page or elements as base64
-
-9. **Session & State Management**
-   - `reconnect` mutation: Get `browserWSEndpoint` for Puppeteer/Playwright handoff
-   - Session API: Persistent sessions with cookies and storage
-
-10. **Hybrid Automation**
-    - Use BQL for stealth, then reconnect to Puppeteer for continued automation
-
-11. **IDE & Developer Tooling**
-    - Web IDE with live browser view
-    - Query history and replay
-    - Export queries to multiple languages
-
-**Documentation:**
-- [BrowserQL Start Guide](https://docs.browserless.io/browserql/start)
-- [BQL Schema Reference](https://docs.browserless.io/bql-schema/schema)
-- [BrowserQL IDE](https://browserless.io/account/bql-ide)
-
-**Example:**
-```json
-{
-  "query": "mutation ScrapeHN { goto(url: \"https://news.ycombinator.com\", waitUntil: firstMeaningfulPaint) { status } firstHeadline: text(selector: \".titleline\") { text } }",
-  "operationName": "ScrapeHN"
-}
-```
-
-### 7. browserless_function
-Executes custom Puppeteer code server-side. Use for complex automation scenarios not covered by other REST APIs.
-
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `code` (required): JavaScript/Puppeteer code to execute
-- `context` (optional): Context object passed to the code
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
-
-**Use Cases:**
-- Complex multi-step automation
-- Conditional logic based on page content
-- Custom data extraction and transformation
-
-**Example:**
-```json
-{
-  "code": "const data = []; await page.goto('https://example.com'); const items = await page.$$('.item'); for(const item of items) { data.push(await item.evaluate(el => el.textContent)); } return data;"
-}
-```
-
-### 8. browserless_download
-Downloads files that Chrome downloads during Puppeteer code execution.
-
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `code` (required): Puppeteer code that triggers file download
-- `context` (optional): Context object passed to the code
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
-
-**Returns:**
-- `base64`: File content as base64-encoded string
-- `filename`: Original filename
-- `contentType`: MIME type
-
-**Example:**
-```json
-{
-  "code": "await page.goto('https://example.com/download'); const downloadPromise = page.waitForEvent('download'); await page.click('a[download]'); await downloadPromise.path();"
-}
-```
-
-### 9. browserless_export
-Fetches a URL and exports/streams its native content type. Optionally bundles all resources as a ZIP file.
-
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to fetch and export
-- `includeResources` (optional): If true, includes all resources as ZIP
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
-
-**Returns:**
-- `base64`: Content as base64-encoded string
-- `contentType`: MIME type
-
-**Example:**
-```json
-{
-  "url": "https://example.com/document.pdf",
-  "includeResources": false
-}
-```
-
-### 10. browserless_performance
-Runs Lighthouse performance audits on a URL.
-
-**Parameters:**
-- `apiKey` (optional): Browserless API key
-- `url` (required): URL to audit
-- `config` (optional): Lighthouse configuration options
-- `region` (optional): Regional endpoint
-- `timeoutMs` (optional): Request timeout
-
-**Returns:**
-- `scores`: performance, accessibility, bestPractices, seo (0-100)
-- `metrics`: FCP, LCP, CLS, TTI, TBT
-
-**Example:**
-```json
-{
-  "url": "https://example.com",
-  "config": {
-    "onlyCategories": ["performance", "best-practices"]
-  }
-}
-```
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| url | string | Yes | — | Base URL to start mapping from |
+| search | string | No | — | Query to order results by relevance |
+| limit | number | No | 100 | Max links (up to 5000) |
+| sitemap | string | No | "include" | include, skip, only |
+| includeSubdomains | boolean | No | true | Include subdomain URLs |
+| ignoreQueryParameters | boolean | No | true | Exclude query-parameter URLs |
+| timeout | number | No | 30000 | Request timeout in milliseconds |
+| apiKey | string | Yes | — | Browserless API key |
 
 ## Regional Endpoints
 
-- `production-sfo`: US West (San Francisco)
-- `production-lon`: Europe UK (London)
-- `production-ams`: Europe Amsterdam
+| Region | Endpoint |
+|--------|----------|
+| US West — San Francisco (default) | `https://production-sfo.browserless.io` |
+| Europe — London | `https://production-lon.browserless.io` |
+| Europe — Amsterdam | `https://production-ams.browserless.io` |
 
-## Concurrency Limit
+Set `BROWSERLESS_DEFAULT_REGION` to override. Accepts short names (`production-lon`), full URLs (`https://...`), or any custom region name (auto-prefixed with `https://`).
 
-The built-in concurrency limiter prevents overwhelming your API quota. The default limit is **5 simultaneous requests**.
+## Environment Variables
 
-**How it works:**
-- Requests are queued when the limit is reached
-- Each request waits for an active request to complete
-- No requests are rejected; they're delayed until capacity is available
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BROWSERLESS_DEFAULT_REGION` | `production-sfo` | Region name or full base URL |
+| `BROWSERLESS_DEFAULT_TIMEOUT_MS` | `30000` | Default request timeout |
 
-**Configuration:**
-```env
-BROWSERLESS_CONCURRENCY_LIMIT=10
+## Development
+
+```bash
+npm run dev:mcp   # Run MCP server with tsx (no build needed)
+npm run build     # Compile TypeScript
+npm run preflight # Validate configuration
 ```
 
-**Recommendations:**
-- **Free tier**: 2-5 concurrent requests
-- **Pro tier**: 5-10 concurrent requests
-- **Enterprise**: Adjust based on your plan limits
+## Testing
 
-## API Key Management
-
-Provide the API key via (in order of precedence):
-1. **Per-request**: Include `apiKey` parameter
-2. **Environment variable**: Set `BROWSERLESS_API_KEY` in `.env`
-3. **MCP configuration**: Set in the `env` section of `mcp.json`
-
-**Security Note**: Never commit API keys to version control.
-
-## BrowserQL Examples
-
-### Basic Navigation and Scraping
-```graphql
-mutation BasicScrape {
-  goto(url: "https://example.com", waitUntil: firstMeaningfulPaint) {
-    status
-    time
-  }
-  title: text(selector: "h1") {
-    text
-  }
-  description: text(selector: "p.intro") {
-    text
-  }
-}
-```
-
-### Form Filling with CAPTCHA Solving
-```graphql
-mutation FormFill {
-  goto(url: "https://example.com/form", waitUntil: networkIdle) {
-    status
-  }
-  emailInput: type(selector: "#email", text: "user@example.com", delay: 50) {
-    time
-  }
-  solveChallenge: solve(type: cloudflare) {
-    solved
-    challengeToken
-  }
-  submitButton: click(selector: "#submit") {
-    time
-  }
-  screenshot {
-    base64
-  }
-}
-```
-
-### Session Persistence - Reconnect to Puppeteer
-```graphql
-mutation PersistSession {
-  goto(url: "https://example.com", waitUntil: firstMeaningfulPaint) {
-    status
-  }
-  endpoint: reconnect {
-    browserWSEndpoint
-  }
-}
-```
-
-Response includes `browserWSEndpoint` to connect with Puppeteer:
-```javascript
-const endpoint = result.data.endpoint.browserWSEndpoint;
-const browser = await puppeteer.connect({ browserWSEndpoint: endpoint });
+```bash
+# From workspace root
+npx jest Browserless/tests/utils.test.ts   # Unit tests for URL/auth helpers
+npx jest Browserless/                       # All Browserless tests
 ```
 
 ## Troubleshooting
 
-### API Key Errors
-- Ensure your API key is valid and active
-- Check environment variables are properly set
-- Verify you haven't exceeded plan limits
-
-### Timeout Errors
-- Increase `timeoutMs` for slow-loading pages
-- Use `waitForSelector` to wait for specific elements
-- Check network connection and Browserless service status
-
-### Empty Scraping Results
-- Verify CSS selectors are correct
-- Check if the site requires bot detection bypass (use `browserless_unblock`)
-- Try increasing `waitForTimeout` to allow content to load
-
-## Development
-
-### Run in Development Mode
-```bash
-# HTTP server
-npm run dev
-
-# MCP server
-npm run dev:mcp
-```
-
-### Build TypeScript
-```bash
-npm run build
-```
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `401` / Invalid token | Wrong or missing API key | Pass a valid `apiKey` in the tool call |
+| `Failed to parse URL` | Malformed region URL | Check `BROWSERLESS_DEFAULT_REGION` is a valid region name or full URL |
+| Timeout | Page too slow | Increase `timeout` parameter |
+| Empty results | Bot detection | Use `browserless_bql` with stealth mode |
 
 ## Resources
 
-### BrowserQL Documentation
-- **Start Guide**: https://docs.browserless.io/browserql/start
-- **Schema Reference**: https://docs.browserless.io/bql-schema/schema
-- **Language Basics**: https://docs.browserless.io/browserql/writing-bql/language-basics
-- **BrowserQL IDE**: https://browserless.io/account/bql-ide
-- **Bot Detection**: https://docs.browserless.io/browserql/bot-detection/overview
-- **Waiting & Synchronization**: https://docs.browserless.io/browserql/writing-bql/waiting-for-things
-- **Form Submission**: https://docs.browserless.io/browserql/use-cases/submitting-forms
-- **Session Management**: https://docs.browserless.io/browserql/session-management/persisting-state
-
-### General Resources
-- **Browserless Documentation**: https://docs.browserless.io/
-- **REST API Reference**: https://docs.browserless.io/rest-apis/intro
-- **Dashboard**: https://browserless.io/account/
-- **Support**: https://browserless.io/contact
+- [Browserless Docs](https://docs.browserless.io/)
+- [BrowserQL Guide](https://docs.browserless.io/browserql/start)
+- [REST API Reference](https://docs.browserless.io/rest-apis/intro)
+- [MCP Server Docs](https://docs.browserless.io/ai-integrations/mcp)
+- [Dashboard](https://browserless.io/account/)

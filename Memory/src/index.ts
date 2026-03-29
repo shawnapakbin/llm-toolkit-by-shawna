@@ -1,13 +1,13 @@
+import crypto from "crypto";
 import Database from "better-sqlite3";
 import { v4 as uuid } from "uuid";
-import crypto from "crypto";
 import { initSchema } from "./schema";
-import type { SolutionPattern, Rule } from "./types";
+import type { Rule, SolutionPattern } from "./types";
 
 export class MemoryStore {
   private db: Database.Database;
 
-  constructor(dbPath: string = "./memory.db") {
+  constructor(dbPath = "./memory.db") {
     this.db = new Database(dbPath);
     initSchema(this.db);
   }
@@ -15,20 +15,14 @@ export class MemoryStore {
   async createTaskRun(prompt: string, traceId: string): Promise<string> {
     const id = uuid();
     const stmt = this.db.prepare(
-      "INSERT INTO task_runs (id, user_prompt, status, trace_id) VALUES (?, ?, ?, ?)"
+      "INSERT INTO task_runs (id, user_prompt, status, trace_id) VALUES (?, ?, ?, ?)",
     );
     stmt.run(id, prompt, "planning", traceId);
     return id;
   }
 
-  async updateTaskRun(
-    taskRunId: string,
-    status: string,
-    outcome?: string
-  ): Promise<void> {
-    const stmt = this.db.prepare(
-      "UPDATE task_runs SET status = ?, outcome = ? WHERE id = ?"
-    );
+  async updateTaskRun(taskRunId: string, status: string, outcome?: string): Promise<void> {
+    const stmt = this.db.prepare("UPDATE task_runs SET status = ?, outcome = ? WHERE id = ?");
     stmt.run(status, outcome || null, taskRunId);
   }
 
@@ -39,13 +33,13 @@ export class MemoryStore {
     output: unknown,
     success: boolean,
     errorCode?: string,
-    durationMs?: number
+    durationMs?: number,
   ): Promise<void> {
     const id = uuid();
     const stmt = this.db.prepare(
       `INSERT INTO tool_calls 
        (id, task_run_id, tool_name, input_params, output_result, success, error_code, duration_ms) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     stmt.run(
       id,
@@ -55,54 +49,41 @@ export class MemoryStore {
       JSON.stringify(output),
       success ? 1 : 0,
       errorCode || null,
-      durationMs || null
+      durationMs || null,
     );
   }
 
-  async recordPattern(
-    taskPrompt: string,
-    toolSequence: string[],
-    trace: string
-  ): Promise<void> {
+  async recordPattern(taskPrompt: string, toolSequence: string[], trace: string): Promise<void> {
     const id = uuid();
     const hash = crypto.createHash("sha256").update(taskPrompt).digest("hex");
     const stmt = this.db.prepare(
       `INSERT OR IGNORE INTO solution_patterns 
        (id, task_description, task_hash, tool_sequence, full_trace) 
-       VALUES (?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?)`,
     );
     stmt.run(id, taskPrompt, hash, JSON.stringify(toolSequence), trace);
   }
 
-  async findSimilarPatterns(
-    prompt: string,
-    limit = 3
-  ): Promise<SolutionPattern[]> {
+  async findSimilarPatterns(prompt: string, limit = 3): Promise<SolutionPattern[]> {
     const hash = crypto.createHash("sha256").update(prompt).digest("hex");
     const stmt = this.db.prepare(
       `SELECT * FROM solution_patterns 
        WHERE task_hash = ? OR task_description LIKE ? 
-       ORDER BY success_rate DESC, uses DESC LIMIT ?`
+       ORDER BY success_rate DESC, uses DESC LIMIT ?`,
     );
-    return stmt.all(
-      hash,
-      `%${prompt.substring(0, 50)}%`,
-      limit
-    ) as SolutionPattern[];
+    return stmt.all(hash, `%${prompt.substring(0, 50)}%`, limit) as SolutionPattern[];
   }
 
   async addRule(type: string, pattern: string, reason?: string): Promise<void> {
     const id = uuid();
     const stmt = this.db.prepare(
-      "INSERT INTO learned_rules (id, rule_type, pattern, reason) VALUES (?, ?, ?, ?)"
+      "INSERT INTO learned_rules (id, rule_type, pattern, reason) VALUES (?, ?, ?, ?)",
     );
     stmt.run(id, type, pattern, reason || null);
   }
 
   async getRules(type: string): Promise<Rule[]> {
-    const stmt = this.db.prepare(
-      "SELECT * FROM learned_rules WHERE rule_type = ?"
-    );
+    const stmt = this.db.prepare("SELECT * FROM learned_rules WHERE rule_type = ?");
     return stmt.all(type) as Rule[];
   }
 
@@ -111,13 +92,13 @@ export class MemoryStore {
     stepNum: number,
     decision: string,
     alternatives?: string[],
-    confidence?: number
+    confidence?: number,
   ): Promise<void> {
     const id = uuid();
     const stmt = this.db.prepare(
       `INSERT INTO agent_decisions 
        (id, task_run_id, step_num, decision_text, alternatives, confidence) 
-       VALUES (?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?)`,
     );
     stmt.run(
       id,
@@ -125,7 +106,7 @@ export class MemoryStore {
       stepNum,
       decision,
       JSON.stringify(alternatives || []),
-      confidence || 0.5
+      confidence || 0.5,
     );
   }
 
@@ -133,13 +114,13 @@ export class MemoryStore {
     taskRunId: string,
     stepNum: number,
     tool: string,
-    error: string
+    error: string,
   ): Promise<string> {
     const id = uuid();
     const stmt = this.db.prepare(
       `INSERT INTO failed_attempts 
        (id, task_run_id, step_num, failed_tool, error_reason) 
-       VALUES (?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?)`,
     );
     stmt.run(id, taskRunId, stepNum, tool, error);
     return id;

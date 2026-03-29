@@ -1,0 +1,19 @@
+{
+  "traceId": "1774498306360-8lh62asw",
+  "workflowId": "eval-web-summary-2-negative",
+  "workflowName": "Web Retrieval - Negative Test",
+  "status": "error",
+  "durationMs": 0,
+  "steps": [
+    {
+      "id": "invalid-url",
+      "toolId": "webbrowser",
+      "success": false,
+      "retries": 0,
+      "durationMs": 0,
+      "errorCode": "INVALID_INPUT",
+      "errorMessage": "invalid url"
+    }
+  ],
+  "generatedAt": "2026-03-26T04:11:46.360Z"
+}

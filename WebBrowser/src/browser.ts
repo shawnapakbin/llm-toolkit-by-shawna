@@ -1,8 +1,4 @@
-import {
-  MAX_REDIRECTS,
-  isAllowedContentType,
-  validateTargetUrl,
-} from "./policy";
+import { MAX_REDIRECTS, isAllowedContentType, validateTargetUrl } from "./policy";
 
 type BrowseInput = {
   url: string;
@@ -52,7 +48,7 @@ export async function browseWeb(input: BrowseInput): Promise<BrowseResult> {
       content: "",
       contentLength: 0,
       error: targetValidation.message,
-      errorCode: targetValidation.errorCode
+      errorCode: targetValidation.errorCode,
     };
   }
 
@@ -74,14 +70,14 @@ export async function browseWeb(input: BrowseInput): Promise<BrowseResult> {
           content: "",
           contentLength: 0,
           error: currentValidation.message,
-          errorCode: currentValidation.errorCode
+          errorCode: currentValidation.errorCode,
         };
       }
 
       response = await fetch(currentUrl, {
         method: "GET",
         signal: controller.signal,
-        redirect: "manual"
+        redirect: "manual",
       });
 
       if (response.status >= 300 && response.status < 400) {
@@ -100,7 +96,7 @@ export async function browseWeb(input: BrowseInput): Promise<BrowseResult> {
             content: "",
             contentLength: 0,
             error: `Redirect limit exceeded (${MAX_REDIRECTS}).`,
-            errorCode: "EXECUTION_FAILED"
+            errorCode: "EXECUTION_FAILED",
           };
         }
 
@@ -119,7 +115,7 @@ export async function browseWeb(input: BrowseInput): Promise<BrowseResult> {
         content: "",
         contentLength: 0,
         error: "No response received.",
-        errorCode: "EXECUTION_FAILED"
+        errorCode: "EXECUTION_FAILED",
       };
     }
 
@@ -133,7 +129,7 @@ export async function browseWeb(input: BrowseInput): Promise<BrowseResult> {
         content: "",
         contentLength: 0,
         error: `Unsupported content type: ${contentType}`,
-        errorCode: "POLICY_BLOCKED"
+        errorCode: "POLICY_BLOCKED",
       };
     }
 
@@ -148,7 +144,7 @@ export async function browseWeb(input: BrowseInput): Promise<BrowseResult> {
       finalUrl: response.url,
       title,
       content: truncated,
-      contentLength: truncated.length
+      contentLength: truncated.length,
     };
   } catch (error) {
     return {
@@ -159,7 +155,7 @@ export async function browseWeb(input: BrowseInput): Promise<BrowseResult> {
       content: "",
       contentLength: 0,
       error: error instanceof Error ? error.message : String(error),
-      errorCode: "EXECUTION_FAILED"
+      errorCode: "EXECUTION_FAILED",
     };
   } finally {
     clearTimeout(timeout);

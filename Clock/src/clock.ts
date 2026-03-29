@@ -30,9 +30,7 @@ export type ClockData = {
   };
 };
 
-type ClockResult =
-  | { success: true; data: ClockData }
-  | { success: false; error: string };
+type ClockResult = { success: true; data: ClockData } | { success: false; error: string };
 
 function getOffsetMinutes(date: Date, timeZone: string): number {
   const dtf = new Intl.DateTimeFormat("en-US", {
@@ -43,7 +41,7 @@ function getOffsetMinutes(date: Date, timeZone: string): number {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hourCycle: "h23"
+    hourCycle: "h23",
   });
 
   const parts = dtf.formatToParts(date);
@@ -53,33 +51,52 @@ function getOffsetMinutes(date: Date, timeZone: string): number {
     day: Number(parts.find((part) => part.type === "day")?.value),
     hour: Number(parts.find((part) => part.type === "hour")?.value),
     minute: Number(parts.find((part) => part.type === "minute")?.value),
-    second: Number(parts.find((part) => part.type === "second")?.value)
+    second: Number(parts.find((part) => part.type === "second")?.value),
   };
 
-  const asUtcMs = Date.UTC(values.year, values.month - 1, values.day, values.hour, values.minute, values.second);
+  const asUtcMs = Date.UTC(
+    values.year,
+    values.month - 1,
+    values.day,
+    values.hour,
+    values.minute,
+    values.second,
+  );
   return Math.round((asUtcMs - date.getTime()) / 60000);
 }
 
-function getTimeZoneNames(date: Date, locale: string, timeZone: string): { short: string; long: string } {
+function getTimeZoneNames(
+  date: Date,
+  locale: string,
+  timeZone: string,
+): { short: string; long: string } {
   const shortFormatter = new Intl.DateTimeFormat(locale, {
     timeZone,
-    timeZoneName: "short"
+    timeZoneName: "short",
   });
   const longFormatter = new Intl.DateTimeFormat(locale, {
     timeZone,
-    timeZoneName: "long"
+    timeZoneName: "long",
   });
 
-  const shortPart = shortFormatter.formatToParts(date).find((part) => part.type === "timeZoneName")?.value ?? timeZone;
-  const longPart = longFormatter.formatToParts(date).find((part) => part.type === "timeZoneName")?.value ?? timeZone;
+  const shortPart =
+    shortFormatter.formatToParts(date).find((part) => part.type === "timeZoneName")?.value ??
+    timeZone;
+  const longPart =
+    longFormatter.formatToParts(date).find((part) => part.type === "timeZoneName")?.value ??
+    timeZone;
 
   return {
     short: shortPart,
-    long: longPart
+    long: longPart,
   };
 }
 
-function getDateAndTimeParts(date: Date, locale: string, timeZone: string): {
+function getDateAndTimeParts(
+  date: Date,
+  locale: string,
+  timeZone: string,
+): {
   year: number;
   month: number;
   day: number;
@@ -97,12 +114,13 @@ function getDateAndTimeParts(date: Date, locale: string, timeZone: string): {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hourCycle: "h23"
+    hourCycle: "h23",
   });
 
   const parts = formatter.formatToParts(date);
 
-  const getPart = (type: Intl.DateTimeFormatPartTypes): string => parts.find((part) => part.type === type)?.value ?? "";
+  const getPart = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((part) => part.type === type)?.value ?? "";
 
   return {
     year: Number(getPart("year")),
@@ -111,11 +129,14 @@ function getDateAndTimeParts(date: Date, locale: string, timeZone: string): {
     hour: Number(getPart("hour")),
     minute: Number(getPart("minute")),
     second: Number(getPart("second")),
-    weekday: getPart("weekday")
+    weekday: getPart("weekday"),
   };
 }
 
-function toIsoLikeInTimeZone(parts: { year: number; month: number; day: number; hour: number; minute: number; second: number }, ms: number): string {
+function toIsoLikeInTimeZone(
+  parts: { year: number; month: number; day: number; hour: number; minute: number; second: number },
+  ms: number,
+): string {
   const pad = (value: number, length = 2): string => String(value).padStart(length, "0");
   return `${pad(parts.year, 4)}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}.${pad(ms, 3)}`;
 }
@@ -123,12 +144,13 @@ function toIsoLikeInTimeZone(parts: { year: number; month: number; day: number; 
 export function getClockSnapshot(request: ClockRequest): ClockResult {
   const now = new Date();
   const systemTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const requestedTimeZone = request.timeZone?.trim() || process.env.CLOCK_DEFAULT_TIMEZONE?.trim() || systemTimeZone;
+  const requestedTimeZone =
+    request.timeZone?.trim() || process.env.CLOCK_DEFAULT_TIMEZONE?.trim() || systemTimeZone;
 
   if (!isValidTimeZone(requestedTimeZone)) {
     return {
       success: false,
-      error: `Invalid IANA timezone '${requestedTimeZone}'. Example values: 'UTC', 'America/New_York', 'Asia/Kolkata'.`
+      error: `Invalid IANA timezone '${requestedTimeZone}'. Example values: 'UTC', 'America/New_York', 'Asia/Kolkata'.`,
     };
   }
 
@@ -154,14 +176,14 @@ export function getClockSnapshot(request: ClockRequest): ClockResult {
         year: parts.year,
         month: parts.month,
         day: parts.day,
-        weekday: parts.weekday
+        weekday: parts.weekday,
       },
       time: {
         hour: parts.hour,
         minute: parts.minute,
         second: parts.second,
-        millisecond: now.getMilliseconds()
-      }
-    }
+        millisecond: now.getMilliseconds(),
+      },
+    },
   };
 }

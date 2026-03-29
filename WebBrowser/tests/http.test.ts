@@ -3,9 +3,7 @@ import { app } from "../src/index";
 
 describe("WebBrowser HTTP endpoint hardening", () => {
   test("rejects missing url", async () => {
-    const response = await request(app)
-      .post("/tools/browse_web")
-      .send({});
+    const response = await request(app).post("/tools/browse_web").send({});
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);

@@ -1,8 +1,4 @@
-import {
-  isCommandBlocked,
-  resolveSafeCwd,
-  truncateOutput,
-} from "../src/policy";
+import { isCommandBlocked, resolveSafeCwd, truncateOutput } from "../src/policy";
 
 describe("Terminal policy hardening", () => {
   test("blocks destructive command patterns", () => {
