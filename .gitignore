@@ -28,6 +28,7 @@ memory.db
 
 # IDE
 .vscode/settings.json
+.vscode/mcp.json
 .idea/
 *.swp
 *.swo
