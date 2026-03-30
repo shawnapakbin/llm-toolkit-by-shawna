@@ -18,8 +18,8 @@ Quick reference for setting up LLM Toolkit.
 ## Option A — GUI Setup (recommended)
 
 ```bash
-git clone https://github.com/shawnapakbin/llm-toolkit-by-shawna.git
-cd llm-toolkit-by-shawna
+git clone https://github.com/shawnapakbin/llm-toolkit-by-shawna.git llm-toolkit
+cd llm-toolkit
 node scripts/setup/setup.js --gui
 ```
 
@@ -37,8 +37,8 @@ Use **Repair** if the installation gets corrupted or you change your workspace p
 ## Option B — CLI Setup
 
 ```bash
-git clone https://github.com/shawnapakbin/llm-toolkit-by-shawna.git
-cd llm-toolkit-by-shawna
+git clone https://github.com/shawnapakbin/llm-toolkit-by-shawna.git llm-toolkit
+cd llm-toolkit
 node scripts/setup/setup.js
 ```
 
