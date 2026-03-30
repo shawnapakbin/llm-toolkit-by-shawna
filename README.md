@@ -6,7 +6,7 @@ All tool calls—whether originating from HTTP, MCP, or internal workflows—are
 
 See implementation roadmap: [AGENT_ROADMAP.md](AGENT_ROADMAP.md)
 
-**Version**: 2.0.0-alpha.1  
+**Version**: 2.0.1  
 **Status**: Phase 0 (Foundation) ✅ Complete
 
 Enterprise-grade LLM software engineer agent with multi-tool orchestration, SQL-backed memory, and unified quality gates.
