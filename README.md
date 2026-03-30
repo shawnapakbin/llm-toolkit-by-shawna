@@ -18,8 +18,8 @@ Enterprise-grade LLM software engineer agent with multi-tool orchestration, SQL-
 ### Installation
 
 ```bash
-git clone https://github.com/shawnapakbin/llm-toolkit-by-shawna.git
-cd llm-toolkit-by-shawna
+git clone https://github.com/shawnapakbin/llm-toolkit-by-shawna.git llm-toolkit
+cd llm-toolkit
 node scripts/setup/setup.js --gui   # Browser GUI (recommended)
 # or
 node scripts/setup/setup.js         # CLI

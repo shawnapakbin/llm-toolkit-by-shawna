@@ -4,7 +4,8 @@
 
 ### Set Up Local Development
 ```bash
-cd llm-toolkit-by-shawna
+git clone https://github.com/shawnapakbin/llm-toolkit-by-shawna.git llm-toolkit
+cd llm-toolkit
 npm install
 npm run build
 npm test
