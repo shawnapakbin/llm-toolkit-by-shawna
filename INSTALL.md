@@ -1,6 +1,6 @@
 # Installation Guide
 
-Quick reference for setting up LLM Toolkit by Shawna.
+Quick reference for setting up LLM Toolkit.
 
 ---
 

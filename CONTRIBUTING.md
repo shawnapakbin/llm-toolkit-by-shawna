@@ -1,4 +1,4 @@
-# Contributing to LLM Toolkit by Shawna
+# Contributing to LLM Toolkit
 
 ## Quick Start
 

@@ -1,7 +1,7 @@
 {
   "name": "llm-toolkit-by-shawna",
   "version": "2.0.1",
-  "description": "Enterprise-grade LLM software engineer agent with multi-tool orchestration",
+  "description": "Enterprise-grade LLM agent toolkit with multi-tool orchestration",
   "private": true,
   "main": "dist/index.js",
   "type": "commonjs",

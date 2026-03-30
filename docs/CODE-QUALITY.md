@@ -108,7 +108,7 @@ No copyright headers needed (license in repo root). Add this to `src/index.ts` t
 /**
  * LLM Toolkit Tool: {Tool Name}
  * 
- * Part of LLM Toolkit by Shawna
+ * Part of LLM Toolkit
  * Model Context Protocol (MCP) server + HTTP endpoint
  */
 ```
