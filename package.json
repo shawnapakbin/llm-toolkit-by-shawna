@@ -6,7 +6,9 @@
   "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
-    "format": "biome format --write .",
+    "setup": "node scripts/setup/setup.js",
+    "setup:repair": "node scripts/setup/setup.js --repair",
+    "setup:gui": "node scripts/setup/setup.js --gui",
     "format:check": "biome format --check .",
     "lint": "biome lint --apply .",
     "lint:check": "biome lint .",
