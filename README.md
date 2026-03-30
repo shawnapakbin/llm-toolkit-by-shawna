@@ -1,4 +1,4 @@
-# LLM Toolkit by Shawna
+# LLM Toolkit
 
 **Enhanced Feature: Unified Tool Call Normalization**
 

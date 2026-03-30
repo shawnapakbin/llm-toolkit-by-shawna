@@ -1,8 +1,8 @@
-# LLM Toolkit by Shawna — Architecture Guide
+# LLM Toolkit — Architecture Guide
 
 ## System Overview
 
-**LLM Toolkit by Shawna** is an enterprise-grade agent framework designed to orchestrate multiple specialized tools for software engineering tasks. The system is built on three pillars:
+**LLM Toolkit** is an enterprise-grade agent framework designed to orchestrate multiple specialized tools for software engineering tasks. The system is built on three pillars:
 
 1. **Tool Isolation** — Each tool (Terminal, WebBrowser, Calculator, etc.) runs independently with strict contracts
 2. **Memory Persistence** — SQLite-backed task history, solution patterns, and learned rules for intelligent decision-making
