@@ -20,17 +20,25 @@ Enterprise-grade LLM software engineer agent with multi-tool orchestration, SQL-
 ```bash
 git clone https://github.com/shawnapakbin/llm-toolkit-by-shawna.git
 cd llm-toolkit-by-shawna
-npm install
-npm run build
+node scripts/setup/setup.js --gui   # Browser GUI (recommended)
+# or
+node scripts/setup/setup.js         # CLI
+```
+
+The setup script handles everything: dependency install, build, `.env` scaffolding, and LM Studio bridge config sync. See [INSTALL.md](INSTALL.md) for full details.
+
+### Repair
+
+If the installation gets corrupted or you move the project folder:
+
+```bash
+npm run setup:repair
 ```
 
 ### Verify Setup
 
 ```bash
-npm run check:ci     # Biome format + lint
-npm run type-check   # TypeScript strict mode
-npm test:ci          # Jest tests (80%+ coverage)
-npm run startup:check # Workspace readiness (MCP binaries + config sync)
+npm run startup:check   # Workspace readiness check
 ```
 
 
@@ -342,6 +350,7 @@ See [Memory/README.md](Memory/README.md) for details.
 
 | Document | Purpose |
 |----------|---------|
+| [INSTALL.md](INSTALL.md) | Step-by-step installation and setup guide |
 | [AGENT_ROADMAP.md](AGENT_ROADMAP.md) | Implementation phases + progress |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design + patterns |
 | [docs/CICD.md](docs/CICD.md) | CI gates + branch protection guidance |
