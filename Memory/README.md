@@ -1,6 +1,6 @@
 # LLM Toolkit Memory — SQLite Persistence Layer
 
-**Part of LLM Toolkit (v2.0.0-alpha.1)**
+**Part of LLM Toolkit (v2.0.1)**
 
 SQLite-backed agent memory for persistent task history, solution pattern reuse, learned rules, and decision tracking.
 
