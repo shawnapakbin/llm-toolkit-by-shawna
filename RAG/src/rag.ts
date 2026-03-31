@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import path from "path";
 import {
   ErrorCode,
   type ToolResponse,
@@ -30,7 +31,10 @@ import type {
   SourceType,
 } from "./types";
 
-const DB_PATH = process.env.RAG_DB_PATH ?? "./rag.db";
+const _rawDbPath = process.env.RAG_DB_PATH ?? "../rag.db";
+const DB_PATH = path.isAbsolute(_rawDbPath)
+  ? _rawDbPath
+  : path.resolve(__dirname, _rawDbPath);
 const DOC_SCRAPER_ENDPOINT =
   process.env.RAG_DOC_SCRAPER_ENDPOINT ?? "http://localhost:3336/tools/read_document";
 const ASK_USER_ENDPOINT =
