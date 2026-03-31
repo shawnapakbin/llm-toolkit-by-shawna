@@ -17,6 +17,7 @@ const servers = {
       BROWSER_DEFAULT_TIMEOUT_MS: "20000",
       BROWSER_MAX_TIMEOUT_MS: "60000",
       BROWSER_MAX_CONTENT_CHARS: "12000",
+      BROWSER_HEADLESS: "true",
     },
   },
   calculator: {

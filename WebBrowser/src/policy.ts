@@ -5,6 +5,7 @@ export const ALLOWED_CONTENT_TYPES = [
   "text/plain",
   "application/xhtml+xml",
   "application/xml",
+  "application/json",   // added v2.1.0
 ];
 
 export function isBlockedHostname(hostname: string): boolean {
