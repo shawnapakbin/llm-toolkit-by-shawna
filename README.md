@@ -237,7 +237,10 @@ npm run mcp:sync-lmstudio
 				"RAG_EMBEDDINGS_MODE": "lmstudio",
 				"RAG_EMBEDDING_MODEL": "nomic-ai/nomic-embed-text-v1.5",
 				"RAG_DOC_SCRAPER_ENDPOINT": "http://localhost:3336/tools/read_document",
-				"RAG_ASK_USER_ENDPOINT": "http://localhost:3338/tools/ask_user_interview"
+				"RAG_ASK_USER_ENDPOINT": "http://localhost:3338/tools/ask_user_interview",
+				"RAG_BYPASS_APPROVAL": "true",
+				"RAG_CHUNK_SIZE_TOKENS": "384",
+				"RAG_CHUNK_OVERLAP_TOKENS": "75"
 			}
 		}
 	}
@@ -401,5 +404,5 @@ Original Author: Shawna Pakbin
 
 ---
 
-**Last Updated**: March 1, 2026  
+**Last Updated**: March 30, 2026  
 Built with ❤️ for LLM-powered software engineering

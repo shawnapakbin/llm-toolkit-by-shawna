@@ -8,152 +8,86 @@ import type { RagAction, RagRequest } from "./types";
 
 dotenv.config();
 
+// Flat input shape — all fields optional except action.
+// The SDK serializes this to JSON Schema for the model.
+const ragInputShape = {
+  action: z
+    .enum(["ingest_documents", "query_knowledge", "list_sources", "delete_source", "reindex_source"])
+    .describe("The operation to perform."),
+  documents: z
+    .array(
+      z.object({
+        text: z.string().optional().describe("Raw text content to ingest."),
+        filePath: z.string().optional().describe("Local file path to ingest."),
+        url: z.string().optional().describe("Remote URL to fetch and ingest."),
+        title: z.string().optional(),
+        sourceKey: z.string().optional(),
+        metadata: z.record(z.unknown()).optional(),
+      }),
+    )
+    .optional()
+    .describe("(ingest_documents) Array of documents. Each needs at least one of: text, filePath, url."),
+  chunkSizeTokens: z.number().optional().describe("(ingest_documents / reindex_source) Chunk size in tokens (default 512)."),
+  overlapTokens: z.number().optional().describe("(ingest_documents / reindex_source) Overlap between chunks (default 50)."),
+  approvalToken: z.string().optional().describe("(ingest_documents / delete_source / reindex_source) One-time approval token from a prior approval_required response."),
+  query: z.string().optional().describe("(query_knowledge) Search query text."),
+  topK: z.number().optional().describe("(query_knowledge) Number of results to return (default 5)."),
+  sourceIds: z.array(z.string()).optional().describe("(query_knowledge) Filter results by source IDs."),
+  sourceKeys: z.array(z.string()).optional().describe("(query_knowledge) Filter results by source keys."),
+  minScore: z.number().optional().describe("(query_knowledge) Minimum relevance score 0–1."),
+  limit: z.number().optional().describe("(list_sources) Max results (default 20)."),
+  offset: z.number().optional().describe("(list_sources) Pagination offset (default 0)."),
+  sourceId: z.string().optional().describe("(delete_source / reindex_source) Source ID to target."),
+} as const;
+
+type RagInput = {
+  action: "ingest_documents" | "query_knowledge" | "list_sources" | "delete_source" | "reindex_source";
+  documents?: Array<{ text?: string; filePath?: string; url?: string; title?: string; sourceKey?: string; metadata?: Record<string, unknown> }>;
+  chunkSizeTokens?: number;
+  overlapTokens?: number;
+  approvalToken?: string;
+  query?: string;
+  topK?: number;
+  sourceIds?: string[];
+  sourceKeys?: string[];
+  minScore?: number;
+  limit?: number;
+  offset?: number;
+  sourceId?: string;
+};
+
 export function createRAGMcpServer(): McpServer {
   const server = new McpServer({
     name: "lm-studio-rag-tool",
     version: "1.0.0",
   });
 
-  const registerTool = server.registerTool.bind(server) as unknown as (
-    name: string,
-    config: { description: string; inputSchema: unknown },
-    handler: (input: unknown) => Promise<CallToolResult>,
-  ) => void;
-
-  registerTool(
+  // Cast to any to avoid Zod v3/v4 compat type depth errors in the SDK generics.
+  // Runtime behaviour is unaffected — Zod v3 validation still runs correctly.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (server.registerTool as any)(
     "rag_knowledge",
     {
       description:
-        "Knowledge base RAG tool: ingest documents, query knowledge, or manage sources. Use ONLY for: (1) ingest_documents—add files/URLs/text to KB, (2) query_knowledge—search KB by query, (3) list_sources—show indexed sources, (4) delete_source—remove sources, (5) reindex_source—reprocess source. NOT for general tasks.",
-      inputSchema: z.discriminatedUnion("action", [
-        z.object({
-          action: z.literal("ingest_documents"),
-          payload: z
-            .object({
-              documents: z
-                .array(
-                  z
-                    .object({
-                      sourceKey: z.string().optional(),
-                      title: z.string().optional(),
-                      text: z.string().optional(),
-                      filePath: z.string().optional(),
-                      url: z.string().url().optional(),
-                      metadata: z.record(z.unknown()).optional(),
-                    })
-                    .strict(),
-                )
-                .describe("Array of documents: at least one of text/filePath/url"),
-              chunkSizeTokens: z
-                .number()
-                .int()
-                .min(100)
-                .max(4000)
-                .optional()
-                .describe("Chunk size in tokens (default 512)"),
-              overlapTokens: z
-                .number()
-                .int()
-                .min(0)
-                .max(500)
-                .optional()
-                .describe("Overlap between chunks (default 50)"),
-              approvalInterviewId: z
-                .string()
-                .optional()
-                .describe("Approval interview ID if approval was obtained"),
-              approvalToken: z
-                .string()
-                .optional()
-                .describe(
-                  "One-time approval token returned by a previous approval_required response",
-                ),
-            })
-            .strict(),
-        }),
-        z.object({
-          action: z.literal("query_knowledge"),
-          payload: z
-            .object({
-              query: z.string().min(1).describe("Search query text"),
-              topK: z
-                .number()
-                .int()
-                .min(1)
-                .max(20)
-                .optional()
-                .describe("Number of results (default 5)"),
-              sourceIds: z.array(z.string()).optional().describe("Filter by source IDs"),
-              sourceKeys: z.array(z.string()).optional().describe("Filter by source keys"),
-              minScore: z
-                .number()
-                .min(0)
-                .max(1)
-                .optional()
-                .describe("Minimum relevance score (0–1)"),
-            })
-            .strict(),
-        }),
-        z.object({
-          action: z.literal("list_sources"),
-          payload: z
-            .object({
-              limit: z
-                .number()
-                .int()
-                .min(1)
-                .max(100)
-                .optional()
-                .describe("Max results (default 20)"),
-              offset: z.number().int().min(0).optional().describe("Pagination offset (default 0)"),
-            })
-            .strict(),
-        }),
-        z.object({
-          action: z.literal("delete_source"),
-          payload: z
-            .object({
-              sourceId: z.string().describe("Source ID to delete"),
-              approvalInterviewId: z
-                .string()
-                .optional()
-                .describe("Required if source deletion needs approval"),
-              approvalToken: z
-                .string()
-                .optional()
-                .describe(
-                  "One-time approval token returned by a previous approval_required response",
-                ),
-            })
-            .strict(),
-        }),
-        z.object({
-          action: z.literal("reindex_source"),
-          payload: z
-            .object({
-              sourceId: z.string().describe("Source ID to reprocess"),
-              chunkSizeTokens: z.number().int().min(100).max(4000).optional(),
-              overlapTokens: z.number().int().min(0).max(500).optional(),
-              approvalInterviewId: z.string().optional(),
-              approvalToken: z
-                .string()
-                .optional()
-                .describe(
-                  "One-time approval token returned by a previous approval_required response",
-                ),
-            })
-            .strict(),
-        }),
-      ]),
+        "Knowledge base RAG tool. Set action to one of: 'ingest_documents' (add files/URLs/text to KB), 'query_knowledge' (search KB), 'list_sources' (list indexed sources), 'delete_source' (remove a source), 'reindex_source' (reprocess a source). Then populate the relevant payload fields for that action.",
+      inputSchema: ragInputShape,
     },
-    async (input): Promise<CallToolResult> => {
-      const { action, payload } = input as {
-        action: RagRequest["action"];
-        payload: RagRequest["payload"];
+    async (input: RagInput): Promise<CallToolResult> => {
+      const { action, documents, chunkSizeTokens, overlapTokens, approvalToken,
+              query, topK, sourceIds, sourceKeys, minScore,
+              limit, offset, sourceId } = input;
+
+      const payloadMap: Record<string, unknown> = {
+        ingest_documents: { documents, chunkSizeTokens, overlapTokens, approvalToken },
+        query_knowledge:  { query, topK, sourceIds, sourceKeys, minScore },
+        list_sources:     { limit, offset },
+        delete_source:    { sourceId, approvalToken },
+        reindex_source:   { sourceId, chunkSizeTokens, overlapTokens, approvalToken },
       };
+
       const result = await handleRAGRequest({
         action: action as RagAction,
-        payload,
+        payload: payloadMap[action] as RagRequest["payload"],
       });
 
       return {

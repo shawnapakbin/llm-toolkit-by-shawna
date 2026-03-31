@@ -18,14 +18,15 @@ RAG MCP tool for persistent document ingestion and semantic retrieval, with robu
 - **BrowserQL guidance:** For dynamic docs domains, if browser-rendered extraction is required, the Browserless tool will return explicit guidance to use BrowserQL (browserless_bql) for robust content capture. See below for details.
 
 ## Environment Variables
-- RAG_DB_PATH (default ./rag.db)
+- RAG_DB_PATH (default ./rag.db, resolved relative to the script directory)
 - RAG_EMBEDDING_MODEL (default nomic-ai/nomic-embed-text-v1.5)
 - RAG_EMBEDDINGS_MODE (lmstudio|mock, default lmstudio)
-- RAG_CHUNK_SIZE_TOKENS (default 350)
-- RAG_CHUNK_OVERLAP_TOKENS (default 40)
+- RAG_CHUNK_SIZE_TOKENS (default 384)
+- RAG_CHUNK_OVERLAP_TOKENS (default 75)
 - RAG_QUERY_TOP_K (default 6)
 - RAG_DOC_SCRAPER_ENDPOINT (default http://localhost:3336/tools/read_document)
 - RAG_ASK_USER_ENDPOINT (default http://localhost:3338/tools/ask_user_interview)
+- RAG_BYPASS_APPROVAL (set to "true" to skip write approval gates)
 
 ## Dynamic Documentation Sites: Fallback and BrowserQL Playbook
 
