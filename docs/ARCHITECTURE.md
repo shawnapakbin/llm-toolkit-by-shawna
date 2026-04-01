@@ -93,11 +93,14 @@ SQLite tables capture agent intelligence:
 | Tool | Purpose | Port | Status |
 |------|---------|------|--------|
 | **Terminal** | Execute shell commands (OS-aware) | 3333 | ✅ Working |
-| **WebBrowser** | Fetch + parse web pages | 3334 | ✅ Working |
+| **WebBrowser** | Full headless Chromium browser — JS rendering, SPAs, cookies, screenshots, markdown output (v2.1.0) | 3334 | ✅ Working |
 | **Calculator** | Math expressions (engineering notation) | 3335 | ✅ Working |
 | **AskUser** | Interactive interview and clarification workflows | 3338 | ✅ Working |
 | **Clock** | Current date/time + timezone | 3337 | ✅ Working |
 | **Browserless** | Advanced browser automation (screenshots, PDFs, scraping, content extraction, BrowserQL, Puppeteer code, downloads, export, Lighthouse audits) | 3003 | ✅ Working |
+| **RAG** | Persistent retrieval augmented generation with source lifecycle + approval-gated writes | 3339 | ✅ Working |
+| **Skills** | Persistent skill/playbook system — define parameterized step templates, execute by name (v2.1.0) | 3341 | ✅ Working |
+| **ECM** | Extended Context Memory — 1M token context via vector retrieval, session isolation, extractive summarization (v2.1.0) | 3342 | ✅ Working |
 | **Git** (Phase 2) | Clone, commit, branch, merge | TBD | 🔄 Planned |
 | **FileEditor** (Phase 2) | Safe read/write code files | TBD | 🔄 Planned |
 | **PackageManager** (Phase 2) | npm/pip/cargo detection + install/update | TBD | 🔄 Planned |
@@ -254,5 +257,5 @@ await memory.recordDecision(taskRunId, step, "chose tool X because...", alternat
 
 ---
 
-**Last Updated**: March 1, 2026  
-**Version**: 2.0.0-alpha.1
+**Last Updated**: March 31, 2026  
+**Version**: 2.1.0

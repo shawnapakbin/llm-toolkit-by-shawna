@@ -6,8 +6,8 @@ All tool calls—whether originating from HTTP, MCP, or internal workflows—are
 
 See implementation roadmap: [AGENT_ROADMAP.md](AGENT_ROADMAP.md)
 
-**Version**: 2.0.1  
-**Status**: Phase 0 (Foundation) ✅ Complete
+**Version**: 2.1.0  
+**Status**: Phase 0 (Foundation) ✅ Complete + v2.1.0 enhancements ✅
 
 Enterprise-grade LLM software engineer agent with multi-tool orchestration, SQL-backed memory, and unified quality gates.
 
@@ -48,16 +48,18 @@ npm run startup:check   # Workspace readiness check
 
 All tool calls are normalized to a canonical format before dispatch, regardless of their origin. This guarantees that every tool invocation—whether from HTTP, MCP, or workflow runner—follows the same schema, improving reliability and extensibility. See `shared/toolCallNormalizer.ts`.
 
-### 8 Core Tools (v1 → v2 compatibility maintained)
+### 11 Core Tools (v2.1.0)
 
 - **[Terminal](Terminal/README.md)** — Execute shell commands (OS-aware: Windows/macOS/Linux) ✅
-- **[WebBrowser](WebBrowser/README.md)** — Fetch + parse web pages (SSRF-protected) ✅
+- **[WebBrowser](WebBrowser/README.md)** — Full headless Chromium browser — JS rendering, SPAs, cookies, screenshots, markdown output ✅ _(upgraded v2.1.0)_
 - **[Calculator](Calculator/README.md)** — Math expressions (engineering notation, symbol normalization) ✅
 - **[DocumentScraper](DocumentScraper/README.md)** — Read documents with structured extraction + encrypted PDF detection ✅
 - **[Clock](Clock/README.md)** — Date/time + timezones (IANA + locale formatting) ✅
 - **[Browserless](Browserless/README.md)** — Advanced browser automation (screenshots, PDFs, scraping, content extraction, BrowserQL, Puppeteer code, downloads, export, Lighthouse audits) ✅
 - **[AskUser](AskUser/README.md)** — Interactive interview workflow for planning and clarification ✅
 - **[RAG](RAG/README.md)** — Persistent retrieval augmented generation with source lifecycle + approval-gated writes ✅
+- **[Skills](Skills/README.md)** — Persistent skill/playbook system — define parameterized step templates, execute by name ✅ _(new v2.1.0)_
+- **[ECM](ECM/README.md)** — Extended Context Memory — effective 1M token context via vector retrieval and session isolation ✅ _(new v2.1.0)_
 
 ### Foundation Layer (Phase 0 ✅)
 
@@ -178,7 +180,8 @@ npm run mcp:sync-lmstudio
 			"env": {
 				"BROWSER_DEFAULT_TIMEOUT_MS": "20000",
 				"BROWSER_MAX_TIMEOUT_MS": "60000",
-				"BROWSER_MAX_CONTENT_CHARS": "12000"
+				"BROWSER_MAX_CONTENT_CHARS": "12000",
+				"BROWSER_HEADLESS": "true"
 			}
 		},
 		"calculator": {
@@ -241,6 +244,22 @@ npm run mcp:sync-lmstudio
 				"RAG_BYPASS_APPROVAL": "true",
 				"RAG_CHUNK_SIZE_TOKENS": "384",
 				"RAG_CHUNK_OVERLAP_TOKENS": "75"
+			}
+		},
+		"skills": {
+			"command": "node",
+			"args": ["Skills/dist/mcp-server.js"],
+			"env": {
+				"SKILLS_DB_PATH": "./skills.db"
+			}
+		},
+		"ecm": {
+			"command": "node",
+			"args": ["ECM/dist/mcp-server.js"],
+			"env": {
+				"ECM_DB_PATH": "./ecm.db",
+				"ECM_EMBEDDINGS_MODE": "lmstudio",
+				"ECM_EMBEDDING_MODEL": "nomic-ai/nomic-embed-text-v1.5"
 			}
 		}
 	}
@@ -363,6 +382,8 @@ See [Memory/README.md](Memory/README.md) for details.
 | [CONTRIBUTING.md](CONTRIBUTING.md) | PR workflow + code review checklist |
 | [Memory/README.md](Memory/README.md) | Memory persistence API |
 | [Browserless/README.md](Browserless/README.md) | Browserless MCP tool usage, schemas, and troubleshooting |
+| [Skills/README.md](Skills/README.md) | Skills Tool — persistent playbook system |
+| [ECM/README.md](ECM/README.md) | ECM Tool — extended context memory |
 
 
 ## Features & Status
@@ -370,7 +391,10 @@ See [Memory/README.md](Memory/README.md) for details.
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Tool call normalization | ✅ | Canonicalizes all tool calls before execution |
-| 8 core tools | ✅ | Terminal, WebBrowser, Calculator, DocumentScraper, Clock, Browserless, AskUser, RAG |
+| 11 core tools | ✅ | Terminal, WebBrowser (headless), Calculator, DocumentScraper, Clock, Browserless, AskUser, RAG, Skills, ECM |
+| WebBrowser headless upgrade | ✅ | Playwright Chromium — JS rendering, SPAs, cookies, screenshots, markdown (v2.1.0) |
+| Skills Tool | ✅ | Persistent parameterized playbooks with {{interpolation}} (v2.1.0) |
+| ECM Tool | ✅ | 1M token context via vector retrieval + session isolation (v2.1.0) |
 | Biome format + lint | ✅ | CI gate, auto-fix on save |
 | Jest test suite | ✅ | 80% coverage minimum |
 | SQLite memory | ✅ | Task history, patterns, rules |
@@ -404,5 +428,5 @@ Original Author: Shawna Pakbin
 
 ---
 
-**Last Updated**: March 30, 2026  
+**Last Updated**: March 31, 2026  
 Built with ❤️ for LLM-powered software engineering
