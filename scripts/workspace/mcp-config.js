@@ -76,6 +76,12 @@ const servers = {
       RAG_CHUNK_OVERLAP_TOKENS: "75",
     },
   },
+  skills: {
+    relativeScript: "Skills/dist/mcp-server.js",
+    env: {
+      SKILLS_DB_PATH: "./skills.db",
+    },
+  },
 };
 
 function normalizeForJson(value) {

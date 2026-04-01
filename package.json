@@ -31,11 +31,11 @@
     "verify:all": "npm run verify:vnext-scope && npm run check:ci && npm run type-check && npm run test:ci && npm run build && npm run startup:check",
     "build": "npm run build:shared && npm run build:tools && npm run build:memory",
     "build:shared": "npm run -w shared build",
-    "build:tools": "npm run -w Terminal build && npm run -w WebBrowser build && npm run -w Calculator build && npm run -w DocumentScraper build && npm run -w Clock build && npm run -w Browserless build && npm run -w AskUser build && npm run -w RAG build",
+    "build:tools": "npm run -w Terminal build && npm run -w WebBrowser build && npm run -w Calculator build && npm run -w DocumentScraper build && npm run -w Clock build && npm run -w Browserless build && npm run -w AskUser build && npm run -w RAG build && npm run -w Skills build",
     "build:memory": "npm run -w Memory build",
     "dev": "npm run dev -w Terminal",
     "clean": "rm -rf dist coverage .biome-cache && npm run clean:tools",
-    "clean:tools": "npm run -w Terminal clean && npm run -w WebBrowser clean && npm run -w Calculator clean && npm run -w DocumentScraper clean && npm run -w Clock clean && npm run -w Browserless clean && npm run -w AskUser clean && npm run -w RAG clean"
+    "clean:tools": "npm run -w Terminal clean && npm run -w WebBrowser clean && npm run -w Calculator clean && npm run -w DocumentScraper clean && npm run -w Clock clean && npm run -w Browserless clean && npm run -w AskUser clean && npm run -w RAG clean && npm run -w Skills clean"
   },
   "keywords": [
     "llm",
@@ -73,6 +73,7 @@
     "Browserless",
     "AskUser",
     "RAG",
-    "Memory"
+    "Memory",
+    "Skills"
   ]
 }
