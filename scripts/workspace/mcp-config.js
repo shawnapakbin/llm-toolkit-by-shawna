@@ -90,6 +90,12 @@ const servers = {
       ECM_EMBEDDING_MODEL: "nomic-ai/nomic-embed-text-v1.5",
     },
   },
+  "slash-commands": {
+    relativeScript: "SlashCommands/dist/mcp-server.js",
+    env: {
+      SLASH_DEFAULT_SESSION: "default",
+    },
+  },
 };
 
 function normalizeForJson(value) {

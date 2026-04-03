@@ -59,7 +59,7 @@ npm run setup:gui      # Browser GUI
 | 1 | Checks Node 18+ and npm 8+ |
 | 2 | Creates `.env` from `.env.example` if missing |
 | 3 | Runs `npm install` |
-| 4 | Runs `npm run build` (compiles all 8 tools) |
+| 4 | Runs `npm run build` (compiles all tools + CLI + SlashCommands) |
 | 5 | Verifies all tool binaries exist |
 | 6 | Syncs LM Studio bridge configs with correct paths and API key |
 

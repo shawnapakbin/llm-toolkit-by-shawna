@@ -35,6 +35,8 @@
   - Memory/dist/
   - AgentRunner/dist/
   - Observability/dist/
+  - CLI/dist/
+  - SlashCommands/dist/
 
 ### 4. MCP Readiness ✅
 - [ ] Run `npm run startup:check:strict`

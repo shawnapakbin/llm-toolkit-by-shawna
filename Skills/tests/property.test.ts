@@ -4,7 +4,7 @@
 process.env.SKILLS_DB_PATH = ":memory:";
 
 import * as fc from "fast-check";
-import { interpolate, resolveSteps } from "../src/skills";
+import { defineSkill, executeSkill, interpolate, resolveSteps } from "../src/skills";
 import { SkillsStore } from "../src/store";
 import type { Step } from "../src/types";
 
@@ -186,6 +186,173 @@ describe("Property: description length boundary", () => {
         fc.string({ minLength: 1001, maxLength: 5000 }),
         (description) => {
           expect(description.length).toBeGreaterThan(1000);
+        },
+      ),
+    );
+  });
+});
+
+// ─── Task 14.6: Round-trip: define → execute → all placeholders resolved ──────
+
+describe("Property: define-execute round-trip", () => {
+  // Arbitraries for valid kebab-case names and param keys
+  const kebabSegment = fc.stringMatching(/^[a-z][a-z0-9]*$/);
+  const kebabName = fc
+    .array(kebabSegment, { minLength: 1, maxLength: 3 })
+    .map((parts) => parts.join("-"));
+  const paramKey = fc
+    .string({ minLength: 1, maxLength: 10 })
+    .filter((s) => /^\w+$/.test(s));
+
+  test("executing a defined skill resolves all known param placeholders", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        kebabName,
+        fc.dictionary(paramKey, fc.string({ minLength: 1, maxLength: 20 }), {
+          minKeys: 1,
+          maxKeys: 4,
+        }),
+        async (baseName, params) => {
+          // Use a unique name per run
+          const name = `${baseName}-${Math.random().toString(36).slice(2, 7)}`;
+          const keys = Object.keys(params);
+
+          // Build a prompt step that uses all param keys as placeholders
+          const template = keys.map((k) => `{{${k}}}`).join("|");
+          const steps: Step[] = [{ type: "prompt", template }];
+
+          const paramSchema = {
+            type: "object" as const,
+            properties: Object.fromEntries(keys.map((k) => [k, { type: "string" }])),
+            required: keys,
+          };
+
+          await defineSkill({ name, description: "round-trip test skill", paramSchema, steps });
+          const result = await executeSkill({ name, params });
+
+          expect(result.success).toBe(true);
+          if (!result.success) return;
+
+          const resolved = result.data.resolvedSteps;
+          expect(resolved).toHaveLength(1);
+
+          const step = resolved[0];
+          expect(step.type).toBe("prompt");
+          if (step.type !== "prompt") return;
+
+          // Every known key placeholder must be replaced
+          for (const key of keys) {
+            expect(step.text).not.toContain(`{{${key}}}`);
+            expect(step.text).toContain(String(params[key]));
+          }
+        },
+      ),
+      { numRuns: 15 },
+    );
+  });
+
+  test("resolved step count always equals defined step count", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        kebabName,
+        fc.integer({ min: 1, max: 10 }),
+        async (baseName, stepCount) => {
+          const name = `${baseName}-${Math.random().toString(36).slice(2, 7)}`;
+          const steps: Step[] = Array.from({ length: stepCount }, (_, i) => ({
+            type: "prompt" as const,
+            template: `step ${i}`,
+          }));
+
+          await defineSkill({
+            name,
+            description: "step count test",
+            paramSchema: { type: "object" as const, properties: {} },
+            steps,
+          });
+
+          const result = await executeSkill({ name, params: {} });
+          expect(result.success).toBe(true);
+          if (!result.success) return;
+          expect(result.data.resolvedSteps).toHaveLength(stepCount);
+        },
+      ),
+      { numRuns: 15 },
+    );
+  });
+});
+
+// ─── Task 14.7: Missing required params rejected ───────────────────────────────
+
+describe("Property: missing required params rejected", () => {
+  const kebabSegment = fc.stringMatching(/^[a-z][a-z0-9]*$/);
+  const kebabName = fc
+    .array(kebabSegment, { minLength: 1, maxLength: 3 })
+    .map((parts) => parts.join("-"));
+  const paramKey = fc
+    .string({ minLength: 1, maxLength: 10 })
+    .filter((s) => /^\w+$/.test(s));
+
+  test("execute_skill without required params returns INVALID_INPUT", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        kebabName,
+        fc.array(paramKey, { minLength: 1, maxLength: 5 }).filter(
+          (keys) => new Set(keys).size === keys.length,
+        ),
+        async (baseName, requiredKeys) => {
+          const name = `${baseName}-${Math.random().toString(36).slice(2, 7)}`;
+          const paramSchema = {
+            type: "object" as const,
+            properties: Object.fromEntries(requiredKeys.map((k) => [k, { type: "string" }])),
+            required: requiredKeys,
+          };
+
+          await defineSkill({
+            name,
+            description: "missing params test",
+            paramSchema,
+            steps: [{ type: "prompt" as const, template: "hello" }],
+          });
+
+          // Execute with empty params — all required keys are missing
+          const result = await executeSkill({ name, params: {} });
+          expect(result.success).toBe(false);
+          if (result.success) return;
+          expect(result.errorCode).toBe("INVALID_INPUT");
+        },
+      ),
+      { numRuns: 15 },
+    );
+  });
+});
+
+// ─── Task 14.8: tool_call step args interpolation round-trip ──────────────────
+
+describe("Property: tool_call args interpolation", () => {
+  test("all {{key}} tokens in tool_call args are replaced after resolveSteps", () => {
+    fc.assert(
+      fc.property(
+        fc.dictionary(
+          fc.string({ minLength: 1, maxLength: 10 }).filter((s) => /^\w+$/.test(s)),
+          fc.string({ minLength: 1, maxLength: 30 }),
+          { minKeys: 1, maxKeys: 5 },
+        ),
+        (params) => {
+          const keys = Object.keys(params);
+          const args = Object.fromEntries(keys.map((k) => [k, `{{${k}}}`]));
+          const steps: Step[] = [{ type: "tool_call", tool: "some-tool", args }];
+
+          const resolved = resolveSteps(steps, params);
+          expect(resolved).toHaveLength(1);
+
+          const step = resolved[0];
+          expect(step.type).toBe("tool_call");
+          if (step.type !== "tool_call") return;
+
+          for (const key of keys) {
+            expect(step.args[key]).toBe(String(params[key]));
+            expect(step.args[key]).not.toContain(`{{${key}}}`);
+          }
         },
       ),
     );

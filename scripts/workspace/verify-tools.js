@@ -29,6 +29,11 @@ const tools = [
   },
   { name: "AskUser", dist: "AskUser/dist/mcp-server.js", src: "AskUser/src/mcp-server.ts" },
   { name: "RAG", dist: "RAG/dist/mcp-server.js", src: "RAG/src/mcp-server.ts" },
+  {
+    name: "SlashCommands",
+    dist: "SlashCommands/dist/mcp-server.js",
+    src: "SlashCommands/src/mcp-server.ts",
+  },
 ];
 
 let failed = false;

@@ -1,13 +1,6 @@
 node_modules/
 dist/
 .env
-WebBrowser/node_modules/
-WebBrowser/dist/
-WebBrowser/.env
-Calculator/node_modules/
-Calculator/dist/
-Calculator/.env
-
 
 # Build outputs
 bin/
@@ -26,9 +19,10 @@ biome-results.json
 memory.db
 *.db
 
-# IDE
-.vscode/settings.json
-.vscode/mcp.json
+# IDE / editor metadata
+.kiro/
+.vs/
+.vscode/
 .idea/
 *.swp
 *.swo
@@ -43,7 +37,6 @@ Thumbs.db
 */dist/
 */.env
 */coverage/
-*/jest.config.*
 
 # Yarn/npm lock files (use npm-shrinkwrap or pnpm-lock)
 yarn.lock
@@ -56,15 +49,16 @@ yarn.lock
 # Temporary
 .tmp/
 *.tmp
+jest-ecm-output.txt
+test-output.json
 
 # Private notes (local only)
 private.md
 **/private.md
 
-# Local reference/scratch files
-LM-Studio-MCP.md
-Browserless/browserless-Documents.md
-Browserless/browserless-ai-integrations.md
+# Stale WAL/SHM files from SQLite
+*.db-shm
+*.db-wal
 
 # TypeScript build info
 **/tsconfig.tsbuildinfo

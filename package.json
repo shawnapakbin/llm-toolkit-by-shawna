@@ -16,7 +16,7 @@
     "check:ci": "biome check --diagnostic-level=error .",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "test:ci": "jest --ci --coverage --maxWorkers=2 && npm run -w CLI test:ci && npm run -w SlashCommands test:ci",
     "test:mcp": "jest AskUser/tests/mcp.test.ts RAG/tests/mcp.test.ts Terminal/tests/mcp.test.ts",
     "test:mcp:live": "jest RAG/tests/mcp.live.test.ts",
     "test:mcp:live:matrix": "jest testing/evaluation/mcp.live-model-matrix.test.ts",
@@ -33,6 +33,9 @@
     "build:shared": "npm run -w shared build",
     "build:tools": "npm run -w Terminal build && npm run -w WebBrowser build && npm run -w Calculator build && npm run -w DocumentScraper build && npm run -w Clock build && npm run -w Browserless build && npm run -w AskUser build && npm run -w RAG build && npm run -w Skills build && npm run -w ECM build",
     "build:memory": "npm run -w Memory build",
+    "build:cli": "npm run -w CLI build",
+    "cli": "node CLI/dist/index.js",
+    "build:slash": "npm run -w SlashCommands build",
     "dev": "npm run dev -w Terminal",
     "clean": "rm -rf dist coverage .biome-cache && npm run clean:tools",
     "clean:tools": "npm run -w Terminal clean && npm run -w WebBrowser clean && npm run -w Calculator clean && npm run -w DocumentScraper clean && npm run -w Clock clean && npm run -w Browserless clean && npm run -w AskUser clean && npm run -w RAG clean && npm run -w Skills clean && npm run -w ECM clean"
@@ -75,6 +78,8 @@
     "RAG",
     "Memory",
     "Skills",
-    "ECM"
+    "ECM",
+    "CLI",
+    "SlashCommands"
   ]
 }

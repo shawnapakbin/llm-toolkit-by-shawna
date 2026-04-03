@@ -267,7 +267,7 @@ describe("Property: extractiveSummarize output bounded", () => {
   });
 });
 
-// ─── Task 9.1: Token count consistency ────────────────────────────────────────
+// ─── Task 9.1: Token count estimation unit properties ─────────────────────────
 
 describe("Property: token count estimation", () => {
   test("estimateTokens is always >= 1 for non-empty strings", () => {
@@ -283,6 +283,76 @@ describe("Property: token count estimation", () => {
       fc.property(fc.string({ minLength: 1, maxLength: 10000 }), (content) => {
         expect(estimateTokens(content)).toBe(Math.ceil(content.length / 4));
       }),
+    );
+  });
+});
+
+// ─── Task 25.2: Token count consistency (store round-trip) ────────────────────
+// **Validates: Requirements 3.2**
+// Property: for any stored segment, record.token_count === estimateTokens(content)
+
+describe("Property: token count consistency", () => {
+  test("stored token_count always equals estimateTokens(content)", () => {
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 2000 }),
+        fc.constantFrom("conversation_turn", "tool_output", "document", "reasoning", "summary" as const),
+        fc.float({ min: 0, max: 1, noNaN: true }),
+        (content, type, importance) => {
+          const store = new ECMStore(":memory:");
+          const embedding = JSON.stringify(new Array(128).fill(0.01));
+          const expectedTokenCount = estimateTokens(content);
+
+          const record = store.insertSegment({
+            sessionId: "test-session",
+            type,
+            content,
+            embeddingJson: embedding,
+            tokenCount: expectedTokenCount,
+            metadataJson: null,
+            importance,
+          });
+
+          expect(record.token_count).toBe(expectedTokenCount);
+          expect(record.token_count).toBe(Math.ceil(content.length / 4));
+
+          store.close();
+        },
+      ),
+      { numRuns: 200 },
+    );
+  });
+
+  test("token_count is consistent across insert and retrieve", () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.string({ minLength: 1, maxLength: 500 }), { minLength: 1, maxLength: 10 }),
+        (contents) => {
+          const store = new ECMStore(":memory:");
+          const embedding = JSON.stringify(new Array(128).fill(0.01));
+          const sessionId = "consistency-session";
+
+          for (const content of contents) {
+            store.insertSegment({
+              sessionId,
+              type: "document",
+              content,
+              embeddingJson: embedding,
+              tokenCount: estimateTokens(content),
+              metadataJson: null,
+              importance: 0.5,
+            });
+          }
+
+          const segments = store.getSegmentsBySession(sessionId);
+          for (const seg of segments) {
+            expect(seg.token_count).toBe(estimateTokens(seg.content));
+          }
+
+          store.close();
+        },
+      ),
+      { numRuns: 100 },
     );
   });
 });
