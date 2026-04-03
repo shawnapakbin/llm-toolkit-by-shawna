@@ -23,6 +23,12 @@ Run `npm run mcp:print-config` to get the full generated config with correct pat
 
 ## Available Commands
 
+### Help
+
+| Command | What it does |
+|---|---|
+| `/help` | Show all available slash commands with usage |
+
 ### Context Memory
 
 | Command | What it does |

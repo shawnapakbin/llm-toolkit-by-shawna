@@ -21,6 +21,7 @@ export type DispatchDescriptor =
   | { tool: "memory_history"; limit: number }
   | { tool: "memory_patterns" }
   | { tool: "config_show" }
+  | { tool: "help" }
   | { tool: "unknown"; raw: string };
 
 /**
@@ -291,6 +292,10 @@ export function parseSlashCommand(raw: string): DispatchDescriptor {
       }
       return { tool: "unknown", raw };
     }
+
+    // ── /help ─────────────────────────────────────────────────────────────
+    case "help":
+      return { tool: "help" };
 
     default:
       return { tool: "unknown", raw };

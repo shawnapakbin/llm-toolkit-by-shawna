@@ -19,6 +19,7 @@ dotenv.config();
 
 const COMMAND_REFERENCE = `
 Supported slash commands:
+  /help
   /compact [--session <id>] [--keep-newest <n>]
   /ecm store <text> [--session <id>] [--type <type>] [--importance <0-1>]
   /ecm retrieve <query> [--session <id>] [--top-k <n>]

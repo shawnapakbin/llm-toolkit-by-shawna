@@ -19,6 +19,58 @@ const TOOL_NAMES: Record<string, string> = {
   ecm: "ECM",
 };
 
+const HELP_TEXT = `Available slash commands:
+
+  /help                                  Show this help message
+
+  Context Memory (ECM)
+  /compact [--session <id>] [--keep-newest <n>]
+  /ecm store <text> [--session <id>] [--type <type>] [--importance <0-1>]
+  /ecm retrieve <query> [--session <id>] [--top-k <n>]
+  /ecm list [--session <id>]
+  /ecm summarize [--session <id>] [--keep-newest <n>]
+  /ecm clear [--session <id>]
+
+  Calculator
+  /calc <expression> [--precision <n>]
+
+  Web Browser
+  /browse <url> [--format text|markdown] [--screenshot] [--wait-selector <css>]
+
+  Clock
+  /clock [--timezone <iana-tz>]
+
+  Terminal
+  /run <command> [--cwd <dir>]
+
+  Skills
+  /skills list
+  /skills get <name>
+  /skills run <name> [--params <json>]
+  /skills delete <name>
+
+  RAG (Knowledge Base)
+  /rag query <text> [--top-k <n>]
+  /rag ingest <text> [--source <label>]
+  /rag list
+  /rag delete <sourceId>
+
+  AskUser
+  /ask <prompt> [--title <title>] [--expires <seconds>]
+
+  Tools
+  /tools list
+  /tools health [<tool-name>]
+  /tools schema <tool-name>
+
+  Memory (Workflow History)
+  /memory stats
+  /memory history [--limit <n>]
+  /memory patterns
+
+  Config
+  /config show`.trim();
+
 export async function route(desc: DispatchDescriptor): Promise<unknown> {
   switch (desc.tool) {
     // ── ECM ───────────────────────────────────────────────────────────────
@@ -195,12 +247,20 @@ export async function route(desc: DispatchDescriptor): Promise<unknown> {
       };
     }
 
+    // ── Help ──────────────────────────────────────────────────────────────
+    case "help":
+      return {
+        success: true,
+        help: HELP_TEXT,
+      };
+
     // ── Unknown ───────────────────────────────────────────────────────────
     case "unknown":
       return {
         success: false,
-        error: `Unknown slash command: "${desc.raw}". Type /tools list to see available commands.`,
+        error: `Unknown slash command: "${desc.raw}". Type /help to see all available commands.`,
         availableCommands: [
+          "/help",
           "/compact", "/ecm store|retrieve|list|delete|summarize|clear",
           "/calc <expr>", "/browse <url>", "/clock", "/run <cmd>",
           "/skills list|get|run|delete", "/rag query|ingest|list|delete",

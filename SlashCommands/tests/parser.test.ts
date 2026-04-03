@@ -545,3 +545,15 @@ describe("extractFlags edge cases", () => {
     expect(result.outputFormat).toBe("text");
   });
 });
+
+// ── /help ─────────────────────────────────────────────────────────────────────
+
+describe("/help", () => {
+  it("returns help tool", () => {
+    expect(parse("/help")).toEqual({ tool: "help" });
+  });
+
+  it("works without leading slash", () => {
+    expect(parse("help")).toEqual({ tool: "help" });
+  });
+});
